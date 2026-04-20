@@ -1,0 +1,2882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HG Weather Forecast TV</title>
+    
+    <!-- PWA Settings -->
+    <meta name="theme-color" content="#0B1121">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HG Weather">
+    
+    <!-- Link to physical PWA Assets -->
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ==================================================== */
+        /* Dynamic Theme System                                 */
+        /* ==================================================== */
+        :root {
+            /* Default 'Ocean' Theme */
+            --c-bg: #0B1121;
+            --c-card: #1e293b;
+            --c-card-alpha: rgba(30, 41, 59, 0.75);
+            --c-input: #0f172a;
+            --c-border: #334155;
+            --c-border-alpha: rgba(51, 65, 85, 0.6);
+            --c-accent: #8ab4f8;
+            --c-text-muted: #9aa0a6;
+        }
+        [data-theme="dark"] {
+            --c-bg: #121212;
+            --c-card: #202124;
+            --c-card-alpha: rgba(32, 33, 36, 0.85);
+            --c-input: #171717;
+            --c-border: #3c4043;
+            --c-border-alpha: rgba(60, 64, 67, 0.8);
+            --c-accent: #8ab4f8;
+            --c-text-muted: #9aa0a6;
+        }
+        [data-theme="midnight"] {
+            --c-bg: #1e1b4b;
+            --c-card: #312e81;
+            --c-card-alpha: rgba(49, 46, 129, 0.75);
+            --c-input: #23215e;
+            --c-border: #4338ca;
+            --c-border-alpha: rgba(67, 56, 202, 0.6);
+            --c-accent: #a5b4fc;
+            --c-text-muted: #c7d2fe;
+        }
+        [data-theme="forest"] {
+            --c-bg: #064e3b;
+            --c-card: #065f46;
+            --c-card-alpha: rgba(6, 95, 70, 0.75);
+            --c-input: #022c22;
+            --c-border: #047857;
+            --c-border-alpha: rgba(4, 120, 87, 0.6);
+            --c-accent: #6ee7b7;
+            --c-text-muted: #a7f3d0;
+        }
+
+        body {
+            background-color: var(--c-bg); 
+            color: #e8eaed;
+            transition: background-image 1.5s ease-in-out, background-color 0.5s ease;
+            background-attachment: fixed;
+            background-size: cover;
+        }
+        
+        /* ==================================================== */
+        /* Dynamic Global Background Effects Engine             */
+        /* ==================================================== */
+        #weather-effects-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .rain-drop {
+            position: absolute;
+            background: linear-gradient(to bottom, rgba(138, 180, 248, 0), rgba(138, 180, 248, 0.4));
+            width: 2px;
+            height: 30px;
+            animation: rain-fall linear infinite;
+        }
+        .snow-flake {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: snow-fall linear infinite;
+        }
+        @keyframes rain-fall {
+            0% { transform: translateY(-50px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh); opacity: 0; }
+        }
+        @keyframes snow-fall {
+            0% { transform: translateY(-50px) translateX(0px); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(110vh) translateX(40px); opacity: 0; }
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle infinite alternate;
+        }
+        @keyframes twinkle { 0% { opacity: 0.1; } 100% { opacity: 0.8; transform: scale(1.2); } }
+        .bg-cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 100px;
+            filter: blur(25px);
+            animation: cloud-move linear infinite;
+        }
+        @keyframes cloud-move { 0% { transform: translateX(-20vw); } 100% { transform: translateX(110vw); } }
+        .fog-layer {
+            position: absolute;
+            width: 200vw;
+            height: 100vh;
+            background: rgba(200, 200, 200, 0.03);
+            filter: blur(60px);
+            animation: fog-move ease-in-out infinite;
+        }
+        @keyframes fog-move { 0% { transform: translateX(-10vw); } 50% { transform: translateX(10vw); } 100% { transform: translateX(-10vw); } }
+        .lightning-flash {
+            position: absolute;
+            inset: 0;
+            background: white;
+            pointer-events: none;
+            animation: flash-anim 8s infinite;
+        }
+        @keyframes flash-anim { 0%, 90%, 94%, 100% { opacity: 0; } 92%, 96% { opacity: 0.5; } }
+
+        /* ==================================================== */
+        /* Dynamic Mega Card Landscape Scene Engine             */
+        /* ==================================================== */
+        .landscape-container {
+            transition: background 1s ease, filter 1s ease;
+        }
+        .landscape-tree {
+            transform-origin: bottom center;
+        }
+        @keyframes sway {
+            0% { transform: rotate(calc(-1 * var(--sway-deg, 5deg))); }
+            100% { transform: rotate(var(--sway-deg, 5deg)); }
+        }
+        .animate-sway {
+            animation: sway var(--sway-dur, 2s) ease-in-out infinite alternate;
+        }
+        @keyframes drift {
+            from { transform: translateX(-10%); }
+            to { transform: translateX(110%); }
+        }
+        .animate-drift {
+            animation: drift var(--drift-dur, 40s) linear infinite;
+        }
+
+        /* ==================================================== */
+        /* Custom Themed UI Components                          */
+        /* ==================================================== */
+        .g-card {
+            background-color: var(--c-card-alpha); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--c-border-alpha);
+            border-radius: 28px;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+        }
+        .g-input {
+            background-color: var(--c-input);
+            border: 1px solid var(--c-border);
+            border-radius: 12px;
+            transition: border-color 0.3s ease, background-color 0.5s ease;
+        }
+        .g-input:focus-within { border-color: var(--c-accent); }
+        
+        /* Hide scrollbars permanently for TV */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .intensity-bar {
+            background-color: var(--c-card);
+            border-radius: 9999px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .intensity-fill { height: 100%; border-radius: 9999px; transition: width 0.3s ease; }
+        
+        .radar-btn.active { 
+            background-color: var(--c-accent); 
+            color: var(--c-bg); 
+            font-weight: bold; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .section-header { cursor: pointer; user-select: none; transition: opacity 0.2s; }
+        .section-header:hover { opacity: 0.8; }
+        
+        .chevron { transition: transform 0.3s ease; }
+        .collapsed .chevron { transform: rotate(-90deg); }
+        
+        /* TV Specific Enhanced Focus */
+        *:focus, *:focus-visible {
+            outline: none !important;
+            box-shadow: 0 0 0 4px var(--c-accent), 0 0 15px rgba(138, 180, 248, 0.4) !important;
+            transform: scale(1.02);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 50;
+            border-radius: inherit; 
+        }
+        
+        button:focus, .g-card:focus, input:focus, .section-header:focus {
+            border-radius: 12px;
+        }
+
+        .radar-btn:focus {
+            transform: scale(1.05) translateX(5px);
+        }
+        
+        /* Interactive Highlight for Hourly Items */
+        .active-hour {
+            background-color: rgba(138, 180, 248, 0.25) !important;
+            border-color: rgba(138, 180, 248, 0.5) !important;
+        }
+
+        .daily-tab:focus, .hourly-item:focus, .hourly-stat-item:focus {
+            border-color: var(--c-accent) !important; 
+            background-color: rgba(138, 180, 248, 0.1) !important;
+        }
+        
+        .nav-btn {
+            background-color: var(--c-card); 
+            border: 1px solid var(--c-border); 
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+            z-index: 10;
+        }
+        .nav-btn:hover { background-color: var(--c-border); }
+        
+        .theme-btn.active { border-color: var(--c-accent); box-shadow: 0 0 0 2px var(--c-accent); }
+
+        /* Custom Star Background for Moon Card */
+        .stars-bg {
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 50px 160px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 130px 80px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 160px 120px, #ffffff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+        }
+    </style>
+</head>
+<body class="font-sans flex justify-center p-3 py-6 min-h-screen overflow-x-hidden">
+
+    <!-- Dynamic Global Background Effects Container -->
+    <div id="weather-effects-container"></div>
+
+    <div class="w-full max-w-[850px] relative z-10">
+        
+        <!-- Top App Bar -->
+        <div class="flex flex-row justify-between items-center mb-8 w-full px-2 gap-6">
+            <div class="text-2xl font-medium text-white flex items-center gap-2" tabindex="0">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+                HG Weather Forecast
+            </div>
+            
+            <!-- Settings Button -->
+            <button onclick="toggleSettingsModal(true)" class="p-2.5 g-card rounded-full text-[var(--c-text-muted)] hover:text-white hover:bg-[#334155] transition shadow-sm ml-auto flex-shrink-0" aria-label="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Error Message Container -->
+        <div id="error-container" class="hidden mb-6 p-4 bg-red-900/50 border border-red-500 rounded-2xl text-red-200 text-sm" tabindex="0"></div>
+        
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden flex flex-col items-center justify-center py-20 text-[var(--c-accent)]" tabindex="-1">
+            <svg class="animate-spin h-10 w-10 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span class="text-sm font-medium uppercase tracking-widest">Fetching Weather...</span>
+        </div>
+
+        <!-- Welcome/Empty State -->
+        <div id="welcome-state" class="hidden flex flex-col items-center justify-center py-24 text-center px-4" tabindex="0">
+            <svg class="w-20 h-20 text-[var(--c-text-muted)] mb-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+            <h2 class="text-2xl text-white font-medium mb-3">Welcome to HG Weather</h2>
+            <p class="text-[var(--c-text-muted)] text-base max-w-md mb-6">We couldn't automatically detect your location. Please open the settings menu to search for a city.</p>
+            <button onclick="toggleSettingsModal(true)" class="bg-[var(--c-accent)] text-[var(--c-bg)] px-6 py-2.5 rounded-full font-medium hover:opacity-80 transition">
+                Open Settings
+            </button>
+        </div>
+
+        <!-- Weather Results Container -->
+        <div id="weather-results" class="hidden flex flex-col gap-3">
+            
+            <!-- Header: City Dropdown & Favorite -->
+            <div class="px-3 flex flex-col items-start relative z-20 mb-1">
+                <div class="flex items-center justify-between w-full">
+                    <div class="relative w-full max-w-[85%]">
+                        <button onclick="toggleCityDropdown()" class="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-lg px-2 -ml-2 py-1 text-left w-full" aria-haspopup="true" aria-expanded="false">
+                            <h2 id="city-name" class="text-2xl sm:text-4xl font-normal text-white tracking-tight group-hover:text-gray-200 truncate drop-shadow-md" dir="auto"></h2>
+                            <svg class="w-5 h-5 text-[var(--c-text-muted)] group-hover:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="city-dropdown" class="hidden absolute left-0 mt-2 w-64 rounded-xl shadow-2xl bg-[var(--c-card)] ring-1 ring-black ring-opacity-5 focus:outline-none border border-[var(--c-border)] overflow-hidden z-50">
+                            <div class="py-1 flex flex-col max-h-60 overflow-y-auto hide-scrollbar" id="main-dropdown-list">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="border-t border-[var(--c-border)] p-1 bg-[var(--c-input)]">
+                                <button onclick="toggleSettingsModal(true); document.getElementById('city-dropdown').classList.add('hidden');" class="w-full text-left px-4 py-3 text-sm text-[var(--c-accent)] hover:bg-[var(--c-border)] transition font-medium flex items-center gap-2 rounded-lg">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    Search New City
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="favorite-btn" onclick="toggleFavorite()" class="text-[var(--c-text-muted)] hover:text-yellow-400 transition p-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-full bg-black/10 backdrop-blur-sm" aria-label="Save City">
+                        <svg id="star-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </button>
+                </div>
+                <div id="date-time" class="text-[var(--c-text-muted)] text-sm px-2 font-medium tracking-wide drop-shadow-sm" dir="auto"></div>
+            </div>
+
+            <!-- Intelligent Insights Container -->
+            <div id="insights-section" class="g-card p-3 sm:p-4 hidden transition-all collapsed">
+                <div class="section-header flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl p-1 -m-1" onclick="toggleSection('insights-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('insights-section');">
+                    <h3 class="text-[var(--c-text-muted)] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        Weather Insights
+                    </h3>
+                    <svg class="chevron text-[var(--c-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="content-wrapper mt-3 hidden flex-col">
+                    <div id="insights-container" class="flex flex-col gap-2 empty:hidden">
+                        <!-- Insights generated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPACT MEGA CARD: Merged Current + Hourly + Extended Tabs -->
+            <div class="g-card overflow-hidden flex flex-col shadow-lg mt-1 relative z-10">
+                
+                <!-- 1. Current Overview Section -->
+                <div class="p-4 sm:p-6 pb-0 relative z-20" tabindex="0">
+                    <div class="flex justify-between items-center">
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="text-sm text-[var(--c-text-muted)] font-medium tracking-wide drop-shadow-md" id="day-label">Now</span>
+                                <span class="text-sm text-[var(--c-accent)] font-bold tracking-wide drop-shadow-md" id="mega-time"></span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-6xl sm:text-8xl font-normal tracking-tighter text-white leading-none drop-shadow-lg" id="current-temp"></span>
+                                <span class="text-2xl sm:text-3xl text-[var(--c-text-muted)] mt-1 ml-1 drop-shadow-md" id="current-unit"></span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <div id="current-icon" class="h-16 w-16 sm:h-20 sm:w-20 mb-1 flex items-center justify-center scale-125 origin-right drop-shadow-2xl"></div>
+                            <span class="text-lg sm:text-xl text-white capitalize leading-tight mt-2 drop-shadow-md" id="current-desc"></span>
+                            <span class="text-[11px] sm:text-sm text-[#e8eaed] mt-1.5 font-medium tracking-wide drop-shadow-md bg-black/20 px-2 py-0.5 rounded-full" id="feels-like"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Landscape Weather Scene Box -->
+                <div class="mx-4 sm:mx-6 mt-4 relative h-32 sm:h-40 rounded-2xl overflow-hidden shadow-inner border border-white/10 landscape-container" id="dynamic-scene-container">
+                    
+                    <!-- Celestial Body (Sun/Moon) tracking mathematically based on time -->
+                    <div id="scene-celestial" class="absolute w-12 h-12 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.8)] transition-all duration-1000 ease-in-out" style="left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
+                    
+                    <!-- Clouds Container -->
+                    <div id="scene-clouds" class="absolute inset-0 opacity-0 transition-opacity duration-1000"></div>
+                    
+                    <!-- Precipitation Container (Rain/Snow) -->
+                    <div id="scene-precip" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+                    
+                    <!-- Lightning overlay -->
+                    <div id="scene-lightning" class="absolute inset-0 hidden bg-white opacity-0 transition-opacity"></div>
+                    
+                    <!-- Ground Layers -->
+                    <div class="absolute bottom-0 w-full h-8 bg-green-900/80 blur-[2px]"></div>
+                    <div class="absolute bottom-0 w-full h-6 bg-gradient-to-t from-[#14532d] to-[#166534] border-t border-green-500/30"></div>
+                    
+                    <!-- Trees & Grass (Swaying with Wind) -->
+                    <div id="scene-trees" class="absolute bottom-1 left-0 w-full h-24 flex items-end justify-around px-4">
+                        <!-- SVGs injected via JS -->
+                    </div>
+                    
+                    <!-- Fog overlay -->
+                    <div id="scene-fog" class="absolute inset-0 hidden bg-gradient-to-t from-white/60 to-white/10 blur-sm pointer-events-none"></div>
+                    
+                    <!-- Humidity overlay (Haze) -->
+                    <div id="scene-humidity" class="absolute inset-0 pointer-events-none transition-all duration-1000 mix-blend-screen"></div>
+                </div>
+
+                <!-- 2. Continuous Hourly Forecast Section -->
+                <div class="relative w-full border-t border-[var(--c-border)] mt-5 sm:mt-6 group">
+                    <button onclick="scrollContainerByItem('hourly-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll left">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+
+                    <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="hourly-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'hourly-container', 1)">
+                        <!-- Main Hourly injected here -->
+                    </div>
+
+                    <button onclick="scrollContainerByItem('hourly-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll right">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+
+                <!-- 3. Extended Forecast Tabs -->
+                <div class="bg-[var(--c-input)]/40 backdrop-blur-md border-t border-[var(--c-border)] px-2 py-2 relative group">
+                    <button onclick="scrollContainerByItem('daily-container', -2)" class="nav-btn absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer hidden sm:flex" aria-label="Scroll left">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+
+                    <div class="flex overflow-x-auto gap-2 px-6 hide-scrollbar cursor-grab active:cursor-grabbing w-full scroll-smooth" id="daily-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'daily-container', 2)">
+                        <!-- Daily Tabs injected here -->
+                    </div>
+
+                    <button onclick="scrollContainerByItem('daily-container', 2)" class="nav-btn absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer hidden sm:flex" aria-label="Scroll right">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Combined Detailed Hourly Lists (Precip, Wind, Humidity) -->
+            <div id="detailed-hourly-section" class="g-card bg-[var(--c-card)] flex flex-col mt-2 transition-all">
+                <div class="section-header flex justify-between items-center p-4 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" onclick="toggleSection('detailed-hourly-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('detailed-hourly-section');">
+                    <h4 class="text-white text-sm font-medium flex items-center gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round"><path d="M22 12a10.06 10.06 1 0 0-20 0Z"></path><path d="M12 12v8a2 2 0 0 0 4 0"></path><path d="M12 2v1"></path></svg>
+                        Detailed Hourly Forecast
+                    </h4>
+                    <svg class="chevron text-[var(--c-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                
+                <div class="content-wrapper flex-col transition-all">
+                    <!-- Hourly Precipitation -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Precipitation</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('precip-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="precip-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'precip-container', 1)"></div>
+                            
+                            <button onclick="scrollContainerByItem('precip-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Wind -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Wind</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('wind-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="wind-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'wind-container', 1)"></div>
+                            
+                            <button onclick="scrollContainerByItem('wind-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Humidity -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Humidity</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('humidity-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="humidity-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'humidity-container', 1)"></div>
+                            
+                            <button onclick="scrollContainerByItem('humidity-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer" aria-label="Scroll right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environment & Air Quality Hourly Forecast -->
+            <div id="environment-section" class="g-card bg-[var(--c-card)] flex flex-col mt-2 transition-all collapsed">
+                <div class="section-header flex justify-between items-center p-4 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" onclick="toggleSection('environment-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('environment-section');">
+                    <h4 class="text-white text-sm font-medium flex items-center gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbc04" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        Environment & Air Quality
+                    </h4>
+                    <svg class="chevron text-[var(--c-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                
+                <div class="content-wrapper hidden flex-col transition-all">
+                    
+                    <!-- Hourly UV -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">UV Index</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('uv-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="uv-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'uv-container', 1)"></div>
+                            <button onclick="scrollContainerByItem('uv-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Hourly AQI -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Air Quality (AQI)</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('aqi-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="aqi-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'aqi-container', 1)"></div>
+                            <button onclick="scrollContainerByItem('aqi-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Visibility -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Visibility</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('vis-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="vis-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'vis-container', 1)"></div>
+                            <button onclick="scrollContainerByItem('vis-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Pressure -->
+                    <div class="relative group border-t border-[var(--c-border)]">
+                        <div class="flex items-center gap-3 p-3 sm:p-4 pb-0">
+                            <span class="text-[var(--c-text-muted)] text-xs font-medium uppercase tracking-wider">Pressure</span>
+                        </div>
+                        <div class="relative w-full">
+                            <button onclick="scrollContainerByItem('press-container', -1)" class="nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                            <div class="flex overflow-x-auto gap-2 px-10 py-3 hide-scrollbar cursor-grab active:cursor-grabbing w-full" id="press-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'press-container', 1)"></div>
+                            <button onclick="scrollContainerByItem('press-container', 1)" class="nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Unified Sun & Moon Card -->
+            <div id="celestial-section" class="g-card p-4 sm:p-5 flex flex-col gap-4 mt-2 transition-all collapsed">
+                <div class="section-header flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl p-1 -m-1" onclick="toggleSection('celestial-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('celestial-section');">
+                    <h4 class="text-[#9aa0a6] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v6m-4.24-.76l-2.83-2.83M16.24 7.24l2.83-2.83M2 18h20M12 18a6 6 0 0 0-6-6h12a6 6 0 0 0-6 6z"/></svg>
+                        Sun & Moon Trackers
+                    </h4>
+                    <svg class="chevron text-[var(--c-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="content-wrapper hidden flex-col mt-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <!-- Modern Glowing Sun Widget -->
+                        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#1a0f05] to-[var(--c-input)] border border-orange-500/20 p-5 flex flex-col items-center shadow-lg">
+                            <div class="absolute -top-20 -left-20 w-40 h-40 bg-orange-500/20 blur-3xl rounded-full pointer-events-none"></div>
+                            <h5 class="text-orange-200/80 text-sm font-bold uppercase tracking-wider mb-2 z-10">Daylight Tracker</h5>
+                            
+                            <div class="relative w-full max-w-[180px] aspect-square flex items-center justify-center mb-4 z-10 mt-2">
+                                <svg viewBox="-10 -10 120 120" class="absolute inset-0 w-full h-full overflow-visible drop-shadow-[0_0_10px_rgba(249,115,22,0.6)]">
+                                    <!-- Dashed Background Track -->
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(249,115,22,0.2)" stroke-width="3" stroke-dasharray="3 5"/>
+                                    <!-- Dynamic Filled Path -->
+                                    <path id="sun-arc-fill" d="" fill="none" stroke="url(#sun-grad)" stroke-width="5" stroke-linecap="round" />
+                                    <!-- Sunrise / Sunset Labels -->
+                                    <text x="-5" y="55" font-size="6" fill="#fdba74" text-anchor="end" font-weight="bold">Dawn</text>
+                                    <text x="105" y="55" font-size="6" fill="#fdba74" text-anchor="start" font-weight="bold">Dusk</text>
+                                    <!-- Markers -->
+                                    <g id="sunrise-marker"><circle cx="0" cy="0" r="3" fill="#1a0f05" stroke="#fb923c" stroke-width="1.5"/></g>
+                                    <g id="sunset-marker"><circle cx="0" cy="0" r="3" fill="#1a0f05" stroke="#fb923c" stroke-width="1.5"/></g>
+                                    <!-- Glowing Sun Dot -->
+                                    <circle id="sun-dot" cx="50" cy="5" r="6" fill="#facc15" style="transition: all 1s ease-in-out; filter: drop-shadow(0 0 8px rgba(250, 204, 21, 1));"/>
+                                    
+                                    <!-- Definitions for Gradients -->
+                                    <defs>
+                                        <linearGradient id="sun-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#f97316"/>
+                                            <stop offset="50%" stop-color="#facc15"/>
+                                            <stop offset="100%" stop-color="#f97316"/>
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                
+                                <!-- Central Data Readout inside Arc -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pt-8 pointer-events-none">
+                                    <span class="text-[10px] text-orange-200/60 uppercase tracking-widest font-semibold mb-0.5">Status</span>
+                                    <div id="sun-status-text" class="text-sm text-white font-bold tracking-wide whitespace-nowrap bg-black/40 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm">--</div>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Metrics below Arc -->
+                            <div class="flex justify-between w-full bg-black/30 rounded-xl border border-white/5 p-3 z-10 mt-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] uppercase tracking-wider text-orange-200/60 font-bold flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path></svg> Sunrise</span>
+                                    <span id="det-sunrise" class="text-white font-medium text-sm mt-0.5">--:--</span>
+                                </div>
+                                <div class="w-px h-full bg-white/10"></div>
+                                <div class="flex flex-col text-right items-end">
+                                    <span class="text-[10px] uppercase tracking-wider text-orange-200/60 font-bold flex items-center gap-1">Sunset <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path></svg></span>
+                                    <span id="det-sunset" class="text-white font-medium text-sm mt-0.5">--:--</span>
+                                </div>
+                            </div>
+                            <div id="sun-percentages" class="text-[10px] text-orange-200/50 mt-3 font-semibold tracking-wide uppercase text-center w-full z-10"></div>
+                        </div>
+
+                        <!-- Deep Space Moon Widget -->
+                        <div class="relative overflow-hidden rounded-2xl bg-[#090c15] border border-indigo-500/20 p-5 flex flex-col items-center shadow-lg stars-bg">
+                            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+                            <h5 class="text-indigo-200/80 text-sm font-bold uppercase tracking-wider mb-2 z-10">Lunar Tracker</h5>
+                            
+                            <div class="relative w-full max-w-[180px] aspect-square flex items-center justify-center mb-4 z-10 mt-2">
+                                <svg viewBox="-10 -10 120 120" class="absolute inset-0 w-full h-full overflow-visible drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(99,102,241,0.2)" stroke-width="2" stroke-dasharray="2 4"/>
+                                    <path id="moon-arc-fill" d="" fill="none" stroke="url(#moon-grad)" stroke-width="4" stroke-linecap="round" />
+                                    
+                                    <!-- Larger detailed Moon SVG in center -->
+                                    <g transform="translate(18, 18) scale(0.64)">
+                                        <!-- Base moon body -->
+                                        <circle cx="50" cy="50" r="45" fill="#1e1b4b" stroke="#3730a3" stroke-width="2"></circle>
+                                        <!-- Craters -->
+                                        <circle cx="30" cy="35" r="8" fill="#111827" opacity="0.4"></circle>
+                                        <circle cx="65" cy="25" r="12" fill="#111827" opacity="0.3"></circle>
+                                        <circle cx="45" cy="65" r="15" fill="#111827" opacity="0.35"></circle>
+                                        <circle cx="70" cy="60" r="6" fill="#111827" opacity="0.5"></circle>
+                                        <!-- Dynamic Phase Overlay -->
+                                        <path id="moon-phase-shape" fill="#e0e7ff" d="" style="filter: drop-shadow(0 0 10px rgba(199,210,254,0.6));"></path>
+                                    </g>
+                                    
+                                    <g id="moonrise-marker"><circle cx="0" cy="0" r="2.5" fill="#090c15" stroke="#818cf8" stroke-width="1.5"/></g>
+                                    <g id="moonset-marker"><circle cx="0" cy="0" r="2.5" fill="#090c15" stroke="#818cf8" stroke-width="1.5"/></g>
+                                    <circle id="moon-dot" cx="50" cy="5" r="4.5" fill="#e0e7ff" style="transition: all 1s ease-in-out; filter: drop-shadow(0 0 6px #e0e7ff);"/>
+                                    
+                                    <defs>
+                                        <linearGradient id="moon-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#4f46e5"/>
+                                            <stop offset="50%" stop-color="#818cf8"/>
+                                            <stop offset="100%" stop-color="#4f46e5"/>
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                
+                                <!-- Central Data Readout inside Arc -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-end pb-3 pointer-events-none">
+                                    <div id="moon-status-text" class="text-[11px] text-white font-bold tracking-wide whitespace-nowrap bg-black/60 px-3 py-1 rounded-full border border-indigo-500/30 backdrop-blur-md">--</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Metrics below Arc -->
+                            <div class="flex justify-between w-full bg-black/30 rounded-xl border border-white/5 p-3 z-10 mt-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] uppercase tracking-wider text-indigo-200/60 font-bold flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> Moonrise</span>
+                                    <span id="det-moonrise" class="text-white font-medium text-sm mt-0.5">--:--</span>
+                                </div>
+                                <div class="w-px h-full bg-white/10"></div>
+                                <div class="flex flex-col text-right items-end">
+                                    <span class="text-[10px] uppercase tracking-wider text-indigo-200/60 font-bold flex items-center gap-1">Moonset <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></span>
+                                    <span id="det-moonset" class="text-white font-medium text-sm mt-0.5">--:--</span>
+                                </div>
+                            </div>
+                            <div id="moon-details" class="text-[10px] text-indigo-200/50 mt-3 font-semibold tracking-wide uppercase text-center w-full z-10 flex flex-col gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 7-Day Weather History -->
+            <div id="history-section" class="g-card p-4 sm:p-5 flex flex-col gap-4 mt-2 transition-all collapsed">
+                <div class="section-header flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl p-1 -m-1" onclick="toggleSection('history-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('history-section');">
+                    <h4 class="text-[#9aa0a6] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Weather History
+                    </h4>
+                    <svg class="chevron text-[var(--c-text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="content-wrapper hidden flex-col mt-2 relative group w-full">
+                    
+                    <!-- Flexible Historical Search Input -->
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full mb-4 px-1">
+                        <input type="text" id="history-date-input" placeholder="Search past date (e.g. Yesterday, 12/25/2022)" class="g-input flex-1 w-full px-4 py-2.5 text-sm text-white focus:outline-none" onkeypress="if(event.key==='Enter') searchHistory()">
+                        <button onclick="searchHistory()" class="w-full sm:w-auto bg-[var(--c-accent)] hover:opacity-80 text-[var(--c-bg)] px-5 py-2.5 rounded-xl text-sm font-bold transition whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-white">Look Up Date</button>
+                    </div>
+
+                    <!-- Single Search Result Container -->
+                    <div id="history-search-result" class="hidden mb-4 px-1 w-full"></div>
+
+                    <!-- Recent 7 Days -->
+                    <h5 class="text-[#5f6368] text-[10px] uppercase font-bold tracking-wider mb-2 ml-1">Recent 7 Days</h5>
+                    <div class="relative w-full">
+                        <button onclick="scrollContainerByItem('history-container', -2)" class="nav-btn absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer hidden sm:flex z-10" aria-label="Scroll left">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+
+                        <div class="flex overflow-x-auto gap-2 px-6 hide-scrollbar cursor-grab active:cursor-grabbing w-full scroll-smooth" id="history-container" tabindex="0" onkeydown="handleContainerKeydown(event, 'history-container', 2)">
+                            <!-- History Tabs injected here -->
+                        </div>
+
+                        <button onclick="scrollContainerByItem('history-container', 2)" class="nav-btn absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-80 hover:!opacity-100 transition cursor-pointer hidden sm:flex z-10" aria-label="Scroll right">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Radar Forecast -->
+            <div id="radar-section" class="g-card p-4 sm:p-5 mt-2 relative group transition-all collapsed">
+                <div class="section-header flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl p-1 -m-1" onclick="toggleSection('radar-section')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSection('radar-section');">
+                    <h3 class="text-[#9aa0a6] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path></svg>
+                        Live Radar Command Center
+                    </h3>
+                    <svg class="chevron text-[#9aa0a6]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+
+                <div class="content-wrapper hidden w-full pt-4">
+                    <div class="relative w-full h-[500px] sm:h-[650px] rounded-2xl overflow-hidden bg-[var(--c-input)] block border border-[var(--c-border)] shadow-inner">
+                        
+                        <!-- Floating Glassmorphism Command Overlay -->
+                        <div class="absolute top-4 left-4 z-10 flex flex-col gap-2 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+                            <span class="text-[10px] uppercase font-bold text-white/50 px-2 pt-1 mb-1 tracking-wider text-center">Map Layers</span>
+                            
+                            <button onclick="changeRadarLayer('radar')" id="layer-radar" class="radar-btn active flex items-center gap-2 px-3 py-2.5 rounded-xl transition focus:outline-none text-sm text-left w-full group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path><path d="M16 20l-2-2"></path><path d="M12 22l-2-2"></path><path d="M8 20l-2-2"></path></svg>
+                                Rain
+                            </button>
+                            <button onclick="changeRadarLayer('wind')" id="layer-wind" class="radar-btn text-[var(--c-text-muted)] hover:text-white hover:bg-white/10 flex items-center gap-2 px-3 py-2.5 rounded-xl transition focus:outline-none text-sm text-left w-full group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>
+                                Wind
+                            </button>
+                            <button onclick="changeRadarLayer('temp')" id="layer-temp" class="radar-btn text-[var(--c-text-muted)] hover:text-white hover:bg-white/10 flex items-center gap-2 px-3 py-2.5 rounded-xl transition focus:outline-none text-sm text-left w-full group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+                                Temp
+                            </button>
+                            <button onclick="changeRadarLayer('clouds')" id="layer-clouds" class="radar-btn text-[var(--c-text-muted)] hover:text-white hover:bg-white/10 flex items-center gap-2 px-3 py-2.5 rounded-xl transition focus:outline-none text-sm text-left w-full group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+                                Clouds
+                            </button>
+                        </div>
+
+                        <!-- Iframe Container -->
+                        <div id="radar-container" class="absolute inset-0 w-full h-full" tabindex="0">
+                            <!-- Iframe injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Settings Overlay Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div id="settings-panel" class="w-full max-w-sm bg-[var(--c-card)] h-full border-l border-[var(--c-border)] shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full">
+            
+            <div class="p-6 border-b border-[var(--c-border)] flex justify-between items-center">
+                <h2 class="text-xl font-medium text-white flex items-center gap-2" tabindex="0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Settings
+                </h2>
+                <button onclick="toggleSettingsModal(false)" class="text-[var(--c-text-muted)] hover:text-white transition p-2 bg-white/5 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white" aria-label="Close settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 hide-scrollbar">
+                
+                <!-- Location Search -->
+                <div class="mb-8">
+                    <h3 class="text-[var(--c-text-muted)] text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2" tabindex="0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        Search Location
+                    </h3>
+                    <div class="relative w-full" dir="auto">
+                        <form id="settings-search-form" class="flex bg-[var(--c-input)] border border-[var(--c-border)] rounded-xl px-2 py-1 focus-within:border-[var(--c-accent)]">
+                            <input type="text" id="settings-city-input" autocomplete="off" placeholder="Search a new city..." class="flex-1 bg-transparent border-none px-2 py-1.5 text-sm text-white focus:outline-none" required>
+                            <button type="submit" class="text-[var(--c-accent)] px-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded">Go</button>
+                        </form>
+                        <!-- Autocomplete Dropdown -->
+                        <ul id="city-autocomplete-list" class="hidden absolute top-full left-0 w-full mt-1.5 bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl shadow-2xl overflow-y-auto max-h-60 z-[100] hide-scrollbar"></ul>
+                    </div>
+                </div>
+
+                <!-- Theme Selection -->
+                <div class="mb-8">
+                    <h3 class="text-[var(--c-text-muted)] text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2" tabindex="0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+                        App Theme
+                    </h3>
+                    <div class="flex gap-4">
+                        <button onclick="changeTheme('ocean')" id="theme-btn-ocean" class="theme-btn w-8 h-8 rounded-full bg-[#0B1121] border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" aria-label="Ocean Blue Theme"></button>
+                        <button onclick="changeTheme('dark')" id="theme-btn-dark" class="theme-btn w-8 h-8 rounded-full bg-[#121212] border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" aria-label="Pitch Dark Theme"></button>
+                        <button onclick="changeTheme('midnight')" id="theme-btn-midnight" class="theme-btn w-8 h-8 rounded-full bg-[#1e1b4b] border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" aria-label="Midnight Purple Theme"></button>
+                        <button onclick="changeTheme('forest')" id="theme-btn-forest" class="theme-btn w-8 h-8 rounded-full bg-[#064e3b] border-2 border-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" aria-label="Deep Forest Theme"></button>
+                    </div>
+                </div>
+
+                <!-- Units Selection -->
+                <div class="mb-8">
+                    <h3 class="text-[var(--c-text-muted)] text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2" tabindex="0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Measurement Units
+                    </h3>
+                    
+                    <div class="flex flex-col gap-4 text-sm text-white">
+                        <div class="flex justify-between items-center">
+                            <span tabindex="0">Temperature</span>
+                            <div class="flex items-center bg-[var(--c-input)] border border-[var(--c-border)] rounded-lg p-1 text-xs">
+                                <button id="btn-temp-C" onclick="changeUnit('temp', 'C')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">°C</button>
+                                <button id="btn-temp-F" onclick="changeUnit('temp', 'F')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">°F</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span tabindex="0">Wind Speed</span>
+                            <div class="flex items-center bg-[var(--c-input)] border border-[var(--c-border)] rounded-lg p-1 text-xs">
+                                <button id="btn-wind-kmh" onclick="changeUnit('wind', 'kmh')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">km/h</button>
+                                <button id="btn-wind-mph" onclick="changeUnit('wind', 'mph')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">mph</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span tabindex="0">Atm. Pressure</span>
+                            <div class="flex items-center bg-[var(--c-input)] border border-[var(--c-border)] rounded-lg p-1 text-xs">
+                                <button id="btn-press-hpa" onclick="changeUnit('pressure', 'hpa')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">hPa</button>
+                                <button id="btn-press-inhg" onclick="changeUnit('pressure', 'inhg')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">inHg</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span tabindex="0">Precipitation</span>
+                            <div class="flex items-center bg-[var(--c-input)] border border-[var(--c-border)] rounded-lg p-1 text-xs">
+                                <button id="btn-precip-mm" onclick="changeUnit('precip', 'mm')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">mm</button>
+                                <button id="btn-precip-in" onclick="changeUnit('precip', 'in')" class="px-3 py-1 rounded transition focus:outline-none focus:ring-2 focus:ring-white">in</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved Cities Management -->
+                <div class="mb-4">
+                    <h3 class="text-[var(--c-text-muted)] text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2" tabindex="0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        Saved Locations
+                    </h3>
+                    <div id="saved-cities-manage-list" class="flex flex-col gap-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-[var(--c-border)] text-xs text-[#5f6368] text-center" tabindex="0">
+                Data provided by Open-Meteo & GeoJS.<br>Radar by Windy.com
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const settingsForm = document.getElementById('settings-search-form');
+        const settingsCityInput = document.getElementById('settings-city-input');
+        const autocompleteList = document.getElementById('city-autocomplete-list');
+        const errorContainer = document.getElementById('error-container');
+        const weatherResults = document.getElementById('weather-results');
+        const loadingState = document.getElementById('loading-state');
+        const welcomeState = document.getElementById('welcome-state');
+        const insightsContainer = document.getElementById('insights-container');
+
+        // App State
+        let units = { temp: 'C', wind: 'kmh', pressure: 'hpa', precip: 'mm' };
+        let appTheme = 'ocean';
+        let currentWeatherData = null;
+        let currentHistoryData = null;
+        let currentAqiData = null; 
+        let currentCityInfo = { name: '', country: '', lat: 0, lon: 0 };
+        let currentSelectedDay = 0; 
+        let currentSelectedHourIndex = null;
+        let currentRadarLayer = 'radar';
+        let savedLocations = []; 
+        let isSyncingScroll = false;
+        let activeSyncContainer = null;
+        let syncScrollEnabled = true;
+        let dayMap = {}; 
+        let autocompleteTimeout;
+
+        // Section Expansion Memory
+        let sectionStates = {
+            'detailed-hourly-section': false,
+            'environment-section': false,
+            'celestial-section': false,
+            'history-section': false,
+            'radar-section': false,
+            'insights-section': false
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            if (savedLocations.length > 0) {
+                fetchWeather(savedLocations[0]);
+            } else {
+                autoDetectLocation();
+            }
+            
+            // Close dropdowns on outside click
+            document.addEventListener('click', (e) => {
+                const cityDropdown = document.getElementById('city-dropdown');
+                const btn = document.querySelector('button[onclick="toggleCityDropdown()"]');
+                if (cityDropdown && btn && !cityDropdown.classList.contains('hidden') && !cityDropdown.contains(e.target) && !btn.contains(e.target)) {
+                    cityDropdown.classList.add('hidden');
+                }
+
+                if (autocompleteList && !autocompleteList.classList.contains('hidden') && !autocompleteList.contains(e.target) && e.target !== settingsCityInput) {
+                    autocompleteList.classList.add('hidden');
+                }
+            });
+
+            // Start Live Clock
+            setInterval(updateClock, 1000);
+            updateClock();
+            
+            setupDragScroll();
+        });
+
+        // ==========================================================
+        // AUTOCOMPLETE LOGIC
+        // ==========================================================
+        settingsCityInput.addEventListener('input', (e) => {
+            clearTimeout(autocompleteTimeout);
+            const val = e.target.value.trim();
+            if (!val) {
+                autocompleteList.classList.add('hidden');
+                return;
+            }
+            
+            // Dynamically detect Arabic text for native language search
+            const isArabic = /[\u0600-\u06FF]/.test(val);
+            const langParam = isArabic ? 'ar' : 'en';
+
+            autocompleteTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=${langParam}&format=json`);
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        autocompleteList.innerHTML = data.results.map(city => {
+                            const locationStr = `${city.name}${city.admin1 ? ', ' + city.admin1 : ''}${city.country ? ', ' + city.country : ''}`;
+                            return `
+                                <li tabindex="0" class="px-4 py-3 hover:bg-[var(--c-border)] focus:bg-[var(--c-border)] focus:outline-none cursor-pointer text-sm text-white border-b border-[var(--c-border)]/50 last:border-0 transition text-left" 
+                                    onclick="selectAutocomplete('${city.name.replace(/'/g, "\\'")}', '${city.admin1 ? city.admin1.replace(/'/g, "\\'") : ''}', '${city.country ? city.country.replace(/'/g, "\\'") : ''}', ${city.latitude}, ${city.longitude})"
+                                    onkeydown="if(event.key==='Enter'||event.key===' ') selectAutocomplete('${city.name.replace(/'/g, "\\'")}', '${city.admin1 ? city.admin1.replace(/'/g, "\\'") : ''}', '${city.country ? city.country.replace(/'/g, "\\'") : ''}', ${city.latitude}, ${city.longitude})">
+                                    ${locationStr}
+                                </li>`;
+                        }).join('');
+                        autocompleteList.classList.remove('hidden');
+                    } else {
+                        autocompleteList.innerHTML = `<li class="px-4 py-3 text-sm text-[var(--c-text-muted)] text-center">No matching cities found</li>`;
+                        autocompleteList.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    autocompleteList.classList.add('hidden');
+                }
+            }, 300);
+        });
+
+        window.selectAutocomplete = function(name, admin1, country, lat, lng) {
+            settingsCityInput.value = '';
+            autocompleteList.classList.add('hidden');
+            toggleSettingsModal(false);
+            const region = admin1 ? `${admin1}, ${country}` : country;
+            fetchWeatherByCoords(lat, lng, name, region);
+        }
+
+        // ==========================================================
+        // CLOCK LOGIC (Mega Card)
+        // ==========================================================
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours();
+            let m = now.getMinutes().toString().padStart(2, '0');
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            const timeStr = `${h}:${m} ${ampm}`;
+            
+            const timeEl = document.getElementById('mega-time');
+            if (timeEl) timeEl.textContent = timeStr;
+            
+            // Only force "Today" label logic if viewing today and NO specific hour is selected
+            if (currentSelectedDay === 0 && currentSelectedHourIndex === null) {
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const dayStr = `${months[now.getMonth()]} ${now.getDate()}`;
+                const dayEl = document.getElementById('day-label');
+                if(dayEl && dayEl.textContent.indexOf('Today') === -1) {
+                   dayEl.textContent = `Today, ${dayStr}`;
+                }
+            }
+        }
+
+        // ==========================================================
+        // SUBTLE WEATHER CSS EFFECTS ENGINE
+        // ==========================================================
+        function applyWeatherEffect(code, isDay) {
+            const container = document.getElementById('weather-effects-container');
+            container.innerHTML = ''; 
+            
+            let bgGradient = isDay ? 'linear-gradient(to bottom right, #1e3a8a, #1e40af, var(--c-bg))' : 'linear-gradient(to bottom right, #020617, var(--c-bg), #1e293b)';
+            
+            const desc = mapWmoCode(code).toLowerCase();
+            
+            if (desc.includes('rain') || desc.includes('drizzle') || desc.includes('storm') || desc.includes('shower')) {
+                bgGradient = isDay ? 'linear-gradient(to bottom right, #334155, #3b82f6, var(--c-bg))' : 'linear-gradient(to bottom right, var(--c-bg), #1e293b)';
+                for (let i = 0; i < 30; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'rain-drop';
+                    drop.style.left = `${Math.random() * 100}%`;
+                    drop.style.animationDuration = `${Math.random() * 0.5 + 0.5}s`;
+                    drop.style.animationDelay = `${Math.random() * 2}s`;
+                    container.appendChild(drop);
+                }
+                if (desc.includes('storm') || desc.includes('thunder')) {
+                    const lightning = document.createElement('div');
+                    lightning.className = 'lightning-flash';
+                    container.appendChild(lightning);
+                }
+            } else if (desc.includes('snow') || desc.includes('ice') || desc.includes('freezing')) {
+                bgGradient = isDay ? 'linear-gradient(to bottom right, #94a3b8, #e2e8f0, var(--c-bg))' : 'linear-gradient(to bottom right, #1e293b, #334155)';
+                for (let i = 0; i < 30; i++) {
+                    const flake = document.createElement('div');
+                    flake.className = 'snow-flake';
+                    flake.style.left = `${Math.random() * 100}%`;
+                    flake.style.width = `${Math.random() * 4 + 2}px`;
+                    flake.style.height = flake.style.width;
+                    flake.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                    flake.style.animationDelay = `${Math.random() * 5}s`;
+                    container.appendChild(flake);
+                }
+            } else if (desc.includes('fog')) {
+                bgGradient = isDay ? 'linear-gradient(to bottom right, #94a3b8, #cbd5e1, var(--c-bg))' : 'linear-gradient(to bottom right, #1e293b, #334155)';
+                for (let i = 0; i < 3; i++) {
+                    const fog = document.createElement('div');
+                    fog.className = 'fog-layer';
+                    fog.style.top = `${i * 20}%`;
+                    fog.style.animationDelay = `${i * 2}s`;
+                    container.appendChild(fog);
+                }
+            } else if (desc.includes('cloud') || desc.includes('overcast')) {
+                bgGradient = isDay ? 'linear-gradient(to bottom right, #475569, #64748b, var(--c-bg))' : 'linear-gradient(to bottom right, var(--c-bg), #1e293b)';
+                for (let i = 0; i < 6; i++) {
+                    const cloud = document.createElement('div');
+                    cloud.className = 'bg-cloud';
+                    cloud.style.width = `${Math.random() * 200 + 100}px`;
+                    cloud.style.height = `${Math.random() * 50 + 50}px`;
+                    cloud.style.top = `${Math.random() * 40}%`;
+                    cloud.style.left = `-${Math.random() * 20 + 20}%`;
+                    cloud.style.animationDuration = `${Math.random() * 20 + 20}s`;
+                    cloud.style.animationDelay = `${Math.random() * 10}s`;
+                    container.appendChild(cloud);
+                }
+            } else {
+                if (isDay) {
+                    bgGradient = 'linear-gradient(to bottom right, #3b82f6, #1d4ed8, var(--c-bg))';
+                    const sunGlow = document.createElement('div');
+                    sunGlow.style.position = 'absolute';
+                    sunGlow.style.top = '-10%';
+                    sunGlow.style.right = '-10%';
+                    sunGlow.style.width = '40vw';
+                    sunGlow.style.height = '40vw';
+                    sunGlow.style.background = 'radial-gradient(circle, rgba(253,224,71,0.15) 0%, rgba(253,224,71,0) 70%)';
+                    sunGlow.style.borderRadius = '50%';
+                    sunGlow.style.pointerEvents = 'none';
+                    container.appendChild(sunGlow);
+                } else {
+                    bgGradient = 'linear-gradient(to bottom right, #020617, var(--c-bg), #0f172a)';
+                    for (let i = 0; i < 50; i++) {
+                        const star = document.createElement('div');
+                        star.className = 'star';
+                        star.style.left = `${Math.random() * 100}%`;
+                        star.style.top = `${Math.random() * 100}%`;
+                        star.style.width = `${Math.random() * 2 + 1}px`;
+                        star.style.height = star.style.width;
+                        star.style.animationDuration = `${Math.random() * 2 + 1}s`;
+                        star.style.animationDelay = `${Math.random() * 2}s`;
+                        container.appendChild(star);
+                    }
+                }
+            }
+            
+            document.body.style.backgroundImage = bgGradient;
+        }
+
+        // ==========================================================
+        // DYNAMIC LANDSCAPE SCENE ENGINE (MEGA CARD)
+        // ==========================================================
+        
+        function calculateCelestialArc(targetHourNum, riseHour, setHour, mRiseHour, mSetHour, isDayCode) {
+            if (isDayCode) {
+                let duration = setHour - riseHour;
+                if (duration < 0) duration += 24;
+                let elapsed = targetHourNum - riseHour;
+                if (elapsed < 0) elapsed += 24;
+                let progress = elapsed / duration;
+                progress = Math.max(0, Math.min(1, progress));
+                
+                let x = 10 + (progress * 80);
+                let y = 80 - (Math.sin(progress * Math.PI) * 70);
+                return { x, y, isSun: true };
+            } else {
+                let duration = mSetHour - mRiseHour;
+                if (duration < 0) duration += 24;
+                let elapsed = targetHourNum - mRiseHour;
+                if (elapsed < 0) elapsed += 24;
+                
+                if (elapsed <= duration) {
+                    let progress = elapsed / duration;
+                    progress = Math.max(0, Math.min(1, progress));
+                    let x = 10 + (progress * 80);
+                    let y = 80 - (Math.sin(progress * Math.PI) * 70);
+                    return { x, y, isSun: false };
+                } else {
+                    return { x: 50, y: 150, isSun: false }; 
+                }
+            }
+        }
+
+        function updateDynamicScene(wmoCode, isDay, windSpeedRaw, precipProb, humidity, celestialPt) {
+            const container = document.getElementById('dynamic-scene-container');
+            const celestial = document.getElementById('scene-celestial');
+            const clouds = document.getElementById('scene-clouds');
+            const precip = document.getElementById('scene-precip');
+            const lightning = document.getElementById('scene-lightning');
+            const treesBox = document.getElementById('scene-trees');
+            const fog = document.getElementById('scene-fog');
+            const humidOverlay = document.getElementById('scene-humidity');
+
+            if (!container) return;
+
+            const desc = mapWmoCode(wmoCode).toLowerCase();
+
+            // 1. Sky Background & Celestial Body Position
+            if (isDay) {
+                if (desc.includes('cloud') || desc.includes('overcast') || desc.includes('fog')) {
+                    container.style.background = 'linear-gradient(to bottom, #94a3b8, #cbd5e1)';
+                } else if (desc.includes('rain') || desc.includes('storm')) {
+                    container.style.background = 'linear-gradient(to bottom, #475569, #94a3b8)';
+                } else {
+                    container.style.background = 'linear-gradient(to bottom, #3b82f6, #60a5fa)';
+                }
+                if (celestialPt && celestialPt.isSun) {
+                    celestial.style.background = 'radial-gradient(circle, #fef08a 20%, #facc15 60%)';
+                    celestial.style.boxShadow = '0 0 50px 20px rgba(250, 204, 21, 0.4)';
+                    celestial.style.opacity = (desc.includes('cloud') || desc.includes('overcast') || desc.includes('rain')) ? '0.2' : '1';
+                }
+            } else {
+                container.style.background = 'linear-gradient(to bottom, #0f172a, #1e293b)';
+                if (celestialPt && !celestialPt.isSun) {
+                    celestial.style.background = 'radial-gradient(circle, #f8fafc 40%, #e2e8f0 80%)';
+                    celestial.style.boxShadow = '0 0 30px 10px rgba(226, 232, 240, 0.2)';
+                    celestial.style.opacity = (desc.includes('cloud') || desc.includes('overcast') || desc.includes('rain')) ? '0.1' : '0.9';
+                }
+            }
+            
+            // Map celestial coordinate (10-90 x, 10-80 y) to landscape box
+            if (celestialPt) {
+                celestial.style.left = `${celestialPt.x}%`;
+                celestial.style.top = `${celestialPt.y}%`;
+            }
+            
+            // Extreme Tornado/Severe Warning check (> 100km/h wind + storm)
+            if (windSpeedRaw > 100) {
+                container.style.background = 'linear-gradient(to bottom, #1a2e05, #020617)'; 
+                celestial.style.opacity = '0';
+            }
+
+            // 2. Wind (Swaying Trees & Grass)
+            const swayDeg = Math.min(45, Math.max(1, (windSpeedRaw / 100) * 45));
+            const swayDur = Math.max(0.3, 3 - (windSpeedRaw / 30));
+            
+            let treesHTML = '';
+            for(let i=0; i<3; i++) {
+                const h = 60 + Math.random()*20;
+                treesHTML += `
+                    <svg width="40" height="${h}" viewBox="0 0 100 200" class="landscape-tree animate-sway" style="--sway-deg: ${swayDeg}deg; --sway-dur: ${swayDur + (Math.random()*0.5)}s;">
+                        <path d="M45,200 L55,200 L50,100 Z" fill="#452700"/>
+                        <circle cx="50" cy="80" r="45" fill="#064e3b"/>
+                        <circle cx="25" cy="110" r="35" fill="#14532d"/>
+                        <circle cx="75" cy="110" r="35" fill="#166534"/>
+                    </svg>
+                `;
+            }
+            treesBox.innerHTML = treesHTML;
+
+            // 3. Clouds
+            clouds.innerHTML = '';
+            if (!desc.includes('clear')) {
+                clouds.style.opacity = '1';
+                let cloudCount = desc.includes('overcast') || desc.includes('rain') ? 8 : 4;
+                let cloudHTML = '';
+                for(let i=0; i<cloudCount; i++) {
+                    const top = Math.random() * 40;
+                    const dur = 20 + Math.random() * 40 - (windSpeedRaw/2);
+                    const op = isDay ? 0.8 : 0.3;
+                    cloudHTML += `
+                        <svg class="absolute animate-drift text-white" style="top: ${top}%; left: -20%; opacity: ${op}; --drift-dur: ${Math.max(5, dur)}s; animation-delay: -${Math.random()*20}s;" width="80" height="40" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                        </svg>
+                    `;
+                }
+                clouds.innerHTML = cloudHTML;
+            } else {
+                clouds.style.opacity = '0';
+            }
+
+            // 4. Precipitation
+            precip.innerHTML = '';
+            lightning.classList.add('hidden');
+            if (desc.includes('rain') || desc.includes('drizzle') || desc.includes('shower') || desc.includes('storm')) {
+                let pHTML = '';
+                const skew = Math.min(45, windSpeedRaw / 2);
+                for(let i=0; i<30; i++) {
+                    pHTML += `<div class="absolute bg-blue-300/60" style="width: 2px; height: 15px; left: ${Math.random()*120 - 10}%; top: -20px; transform: rotate(${skew}deg); animation: rain-fall ${0.3 + Math.random()*0.2}s linear infinite -${Math.random()}s;"></div>`;
+                }
+                precip.innerHTML = pHTML;
+                
+                if(desc.includes('storm') || desc.includes('thunder')) {
+                    lightning.classList.remove('hidden');
+                }
+            } else if (desc.includes('snow') || desc.includes('ice') || desc.includes('freezing')) {
+                let pHTML = '';
+                for(let i=0; i<30; i++) {
+                    pHTML += `<div class="absolute bg-white rounded-full" style="width: 4px; height: 4px; left: ${Math.random()*100}%; top: -10px; animation: snow-fall ${1.5 + Math.random()*1.5}s linear infinite -${Math.random()*2}s;"></div>`;
+                }
+                precip.innerHTML = pHTML;
+            }
+
+            // 5. Fog
+            if (desc.includes('fog')) {
+                fog.classList.remove('hidden');
+            } else {
+                fog.classList.add('hidden');
+            }
+
+            // 6. Humidity Haze
+            if (humidity > 85) {
+                humidOverlay.style.background = 'rgba(255,255,255,0.15)';
+            } else if (humidity > 60) {
+                humidOverlay.style.background = 'rgba(255,255,255,0.05)';
+            } else {
+                humidOverlay.style.background = 'transparent';
+            }
+        }
+
+
+        // ==========================================================
+        // GLOBAL HELPER FUNCTIONS
+        // ==========================================================
+        
+        function getLocalHour(timeStr) {
+            if(!timeStr) return 0;
+            const parts = timeStr.split('T')[1].split(':');
+            return parseInt(parts[0]) + parseInt(parts[1])/60;
+        }
+
+        function getCoord(hour) {
+            const angle = Math.PI / 2 + (hour / 24) * 2 * Math.PI;
+            return { x: 50 + 45 * Math.cos(angle), y: 50 + 45 * Math.sin(angle) };
+        }
+
+        function formatHour(hr) {
+            let h = Math.floor(hr);
+            let m = Math.floor((hr % 1) * 60);
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            let displayH = h % 12;
+            if(displayH === 0) displayH = 12;
+            return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        function convertTemp(tempInC) {
+            if (units.temp === 'C') return Math.round(tempInC);
+            return Math.round((tempInC * 9/5) + 32);
+        }
+
+        function formatSpeed(valKmH) {
+            if (units.wind === 'kmh') return `${Math.round(valKmH)} km/h`;
+            return `${Math.round(valKmH * 0.621371)} mph`;
+        }
+
+        function formatPrecip(valMm) {
+            if (units.precip === 'mm') return `${valMm.toFixed(1)} mm`;
+            return `${(valMm * 0.0393701).toFixed(2)} in`;
+        }
+
+        function formatPressure(valHpa) {
+            if (units.pressure === 'hpa') return `${Math.round(valHpa)} hPa`;
+            return `${(valHpa * 0.02953).toFixed(2)} inHg`;
+        }
+
+        function formatVisibility(meters) {
+            let visKm = meters / 1000;
+            if (units.wind === 'kmh') return `${visKm.toFixed(1)} km`; 
+            return `${(visKm / 1.60934).toFixed(1)} mi`;
+        }
+
+        function getUVCategory(uv) {
+            if (uv <= 2) return { text: "Low", color: "bg-green-400" };
+            if (uv <= 5) return { text: "Moderate", color: "bg-yellow-400" };
+            if (uv <= 7) return { text: "High", color: "bg-orange-400" };
+            if (uv <= 10) return { text: "Very High", color: "bg-red-500" };
+            return { text: "Extreme", color: "bg-purple-500" };
+        }
+
+        // ==========================================================
+        // ASTRONOMICAL ENGINE (SUN & MOON)
+        // ==========================================================
+
+        function getMoonPhase(dateObj) {
+            let year = dateObj.getFullYear();
+            let month = dateObj.getMonth() + 1;
+            let day = dateObj.getDate();
+            if (month < 3) { year--; month += 12; }
+            ++month;
+            let c = 365.25 * year;
+            let e = 30.6 * month;
+            let jd = c + e + day - 694039.09; 
+            let phase = jd / 29.5305882; 
+            phase = phase - Math.floor(phase);
+            return phase; 
+        }
+
+        function getMoonPhaseName(phase) {
+            if (phase < 0.03 || phase > 0.97) return "🌑 New Moon";
+            if (phase < 0.22) return "🌒 Waxing Crescent";
+            if (phase < 0.28) return "🌓 First Quarter";
+            if (phase < 0.47) return "🌔 Waxing Gibbous";
+            if (phase < 0.53) return "🌕 Full Moon";
+            if (phase < 0.72) return "🌖 Waning Gibbous";
+            if (phase < 0.78) return "🌗 Last Quarter";
+            return "🌘 Waning Crescent";
+        }
+        
+        function drawMoonPhaseSVG(phase) {
+            let rx = 45;
+            let d = '';
+            if (phase <= 0.5) {
+                let p2 = phase * 2; 
+                if (p2 <= 0.5) {
+                    rx = 45 - (p2 * 2 * 45); 
+                    d = `M 50,5 A 45,45 0 0,1 50,95 A ${rx},45 0 0,1 50,5 Z`;
+                } else {
+                    rx = (p2 - 0.5) * 2 * 45; 
+                    d = `M 50,5 A 45,45 0 0,1 50,95 A ${rx},45 0 0,0 50,5 Z`;
+                }
+            } else {
+                let p2 = (phase - 0.5) * 2;
+                if (p2 <= 0.5) {
+                    rx = 45 - (p2 * 2 * 45); 
+                    d = `M 50,5 A 45,45 0 0,0 50,95 A ${rx},45 0 0,1 50,5 Z`;
+                } else {
+                    rx = (p2 - 0.5) * 2 * 45; 
+                    d = `M 50,5 A 45,45 0 0,0 50,95 A ${rx},45 0 0,0 50,5 Z`;
+                }
+            }
+            if (phase === 0 || phase === 1) d = '';
+            if (phase === 0.5) d = `M 50,5 A 45,45 0 0,1 50,95 A 45,45 0 0,1 50,5 Z`;
+            
+            const el = document.getElementById('moon-phase-shape');
+            if(el) el.setAttribute('d', d);
+        }
+
+        // ==========================================================
+        // SETTINGS & LOCAL STORAGE MANAGEMENT
+        // ==========================================================
+
+        function loadSettings() {
+            const savedUnitSettings = localStorage.getItem('weatherSettingsExt');
+            if (savedUnitSettings) units = JSON.parse(savedUnitSettings);
+            
+            const savedCities = localStorage.getItem('weatherCities');
+            if (savedCities) savedLocations = JSON.parse(savedCities);
+
+            const savedStates = localStorage.getItem('weatherSectionStates');
+            if (savedStates) sectionStates = { ...sectionStates, ...JSON.parse(savedStates) };
+            
+            const savedTheme = localStorage.getItem('weatherTheme');
+            if (savedTheme) changeTheme(savedTheme);
+            else changeTheme('ocean');
+
+            updateUnitToggleUI();
+            renderSettingsCities();
+            applySectionStates();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('weatherSettingsExt', JSON.stringify(units));
+            localStorage.setItem('weatherCities', JSON.stringify(savedLocations));
+            localStorage.setItem('weatherSectionStates', JSON.stringify(sectionStates));
+        }
+
+        function changeTheme(themeName) {
+            appTheme = themeName;
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('weatherTheme', themeName);
+            
+            // Update active state in UI
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`theme-btn-${themeName}`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        function changeUnit(category, value) {
+            units[category] = value;
+            saveSettings();
+            updateUnitToggleUI();
+            if (currentWeatherData) {
+                renderWeather();
+                updateRadar(currentCityInfo.lat, currentCityInfo.lon, currentRadarLayer);
+            }
+        }
+
+        function updateUnitToggleUI() {
+            const activeClass = "px-3 py-1 rounded bg-[var(--c-accent)] text-[var(--c-bg)] shadow-sm focus:outline-none focus:ring-2 focus:ring-white";
+            const inactiveClass = "px-3 py-1 rounded text-[var(--c-text-muted)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white";
+
+            document.getElementById('btn-temp-C').className = units.temp === 'C' ? activeClass : inactiveClass;
+            document.getElementById('btn-temp-F').className = units.temp === 'F' ? activeClass : inactiveClass;
+            document.getElementById('btn-wind-kmh').className = units.wind === 'kmh' ? activeClass : inactiveClass;
+            document.getElementById('btn-wind-mph').className = units.wind === 'mph' ? activeClass : inactiveClass;
+            document.getElementById('btn-press-hpa').className = units.pressure === 'hpa' ? activeClass : inactiveClass;
+            document.getElementById('btn-press-inhg').className = units.pressure === 'inhg' ? activeClass : inactiveClass;
+            document.getElementById('btn-precip-mm').className = units.precip === 'mm' ? activeClass : inactiveClass;
+            document.getElementById('btn-precip-in').className = units.precip === 'in' ? activeClass : inactiveClass;
+        }
+
+        function toggleFavorite() {
+            if (!currentCityInfo.name) return;
+            const cityStr = `${currentCityInfo.name}, ${currentCityInfo.country}`;
+            const idx = savedLocations.indexOf(cityStr);
+            if (idx > -1) savedLocations.splice(idx, 1); 
+            else savedLocations.push(cityStr); 
+            
+            saveSettings();
+            updateFavoriteIcon();
+            renderSettingsCities();
+        }
+
+        function updateFavoriteIcon() {
+            if (!currentCityInfo.name) return;
+            const cityStr = `${currentCityInfo.name}, ${currentCityInfo.country}`;
+            const icon = document.getElementById('star-icon');
+            const btn = document.getElementById('favorite-btn');
+            
+            if (savedLocations.includes(cityStr)) {
+                icon.setAttribute('fill', 'currentColor');
+                btn.classList.add('text-yellow-400');
+                btn.classList.remove('text-[var(--c-text-muted)]');
+            } else {
+                icon.setAttribute('fill', 'none');
+                btn.classList.add('text-[var(--c-text-muted)]');
+                btn.classList.remove('text-yellow-400');
+            }
+        }
+
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settings-modal');
+            const panel = document.getElementById('settings-panel');
+            if (show) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                panel.classList.remove('translate-x-full');
+            } else {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                panel.classList.add('translate-x-full');
+                autocompleteList.classList.add('hidden');
+            }
+        }
+
+        function toggleCityDropdown() {
+            const dropdown = document.getElementById('city-dropdown');
+            if(dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function loadSavedCity(cityStr) {
+            const dropdown = document.getElementById('city-dropdown');
+            if(dropdown) dropdown.classList.add('hidden');
+            toggleSettingsModal(false);
+            
+            // Extract city from saved string to re-search to guarantee coords
+            const parts = cityStr.split(',');
+            const cityOnly = parts[0].trim();
+            fetchWeather(cityOnly);
+        }
+
+        function removeSavedCity(cityStr, event) {
+            event.stopPropagation(); 
+            const idx = savedLocations.indexOf(cityStr);
+            if (idx > -1) {
+                savedLocations.splice(idx, 1);
+                saveSettings();
+                renderSettingsCities();
+                updateFavoriteIcon();
+            }
+        }
+
+        function renderSettingsCities() {
+            const listManage = document.getElementById('saved-cities-manage-list');
+            if (listManage) {
+                if (savedLocations.length === 0) {
+                    listManage.innerHTML = `<div class="text-[#5f6368] text-sm italic py-4 text-center">No saved locations yet.<br>Click the star icon next to a city's name to save it.</div>`;
+                } else {
+                    listManage.innerHTML = savedLocations.map(city => `
+                        <div class="flex items-center justify-between bg-[var(--c-input)] border border-[var(--c-border)] rounded-xl p-3 hover:bg-[var(--c-card)] transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" onclick="loadSavedCity('${city.replace(/'/g, "\\'")}')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')loadSavedCity('${city.replace(/'/g, "\\'")}')">
+                            <span class="text-white text-sm font-medium truncate pr-2">${city}</span>
+                            <button onclick="removeSavedCity('${city.replace(/'/g, "\\'")}', event)" class="text-[#5f6368] hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-400 rounded" aria-label="Remove">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const listMain = document.getElementById('main-dropdown-list');
+            if (listMain) {
+                if (savedLocations.length === 0) {
+                    listMain.innerHTML = `<div class="text-[var(--c-text-muted)] text-sm py-3 px-4 italic">No favorites saved</div>`;
+                } else {
+                    listMain.innerHTML = savedLocations.map(city => `
+                        <button onclick="loadSavedCity('${city.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm text-white hover:bg-[var(--c-border)] transition font-medium focus:outline-none focus:bg-[var(--c-border)]">
+                            ${city}
+                        </button>
+                    `).join('');
+                }
+            }
+        }
+
+        // ==========================================================
+        // UI INTERACTION HELPERS
+        // ==========================================================
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            const isCollapsed = section.classList.toggle('collapsed');
+            const wrapper = section.querySelector('.content-wrapper');
+            if (wrapper) {
+                if (isCollapsed) {
+                    wrapper.classList.add('hidden');
+                    wrapper.classList.remove('flex');
+                } else {
+                    wrapper.classList.remove('hidden');
+                    wrapper.classList.add('flex');
+                }
+            }
+            sectionStates[sectionId] = !isCollapsed;
+            saveSettings();
+        }
+
+        function applySectionStates() {
+            for (const [id, isExpanded] of Object.entries(sectionStates)) {
+                const section = document.getElementById(id);
+                if (section) {
+                    const wrapper = section.querySelector('.content-wrapper');
+                    if (isExpanded) {
+                        section.classList.remove('collapsed');
+                        if (wrapper) {
+                            wrapper.classList.remove('hidden');
+                            if(id === 'environment-section' || id === 'celestial-section' || id === 'detailed-hourly-section' || id === 'history-section') wrapper.classList.add('flex');
+                        }
+                    } else {
+                        section.classList.add('collapsed');
+                        if (wrapper) {
+                            wrapper.classList.add('hidden');
+                            if(id === 'environment-section' || id === 'celestial-section' || id === 'detailed-hourly-section' || id === 'history-section') wrapper.classList.remove('flex');
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleContainerKeydown(e, containerId, scrollAmt) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (document.activeElement === container || container.contains(document.activeElement)) {
+                if (e.key === 'ArrowRight') {
+                    scrollContainerByItem(containerId, 1);
+                } else if (e.key === 'ArrowLeft') {
+                    scrollContainerByItem(containerId, -1);
+                }
+            }
+        }
+
+        function scrollContainerByItem(containerId, direction) {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            
+            let selector = containerId === 'daily-container' || containerId === 'history-container' ? '.daily-tab' : '.hourly-item';
+            if (containerId !== 'daily-container' && containerId !== 'history-container' && containerId !== 'hourly-container') {
+                selector = '.hourly-stat-item';
+            }
+
+            const firstItem = container.querySelector(selector);
+            if (firstItem) {
+                const gap = parseFloat(window.getComputedStyle(container).gap) || 0;
+                const scrollAmount = firstItem.offsetWidth + gap;
+                
+                activeSyncContainer = containerId;
+                container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+            }
+        }
+
+        function highlightHourlyItem(index) {
+            document.querySelectorAll('.hourly-item').forEach(el => el.classList.remove('active-hour', 'border-[var(--c-accent)]'));
+            if (index !== null) {
+                const el = document.getElementById('hourly-item-' + index);
+                if (el) {
+                    el.classList.add('active-hour', 'border-[var(--c-accent)]');
+                }
+            }
+        }
+
+        // ==========================================================
+        // SYNCHRONIZED SCROLLING (Glitch-Free)
+        // ==========================================================
+
+        function setupDragScroll() {
+            const containers = [
+                'hourly-container', 'daily-container', 'history-container',
+                'precip-container', 'wind-container', 'humidity-container',
+                'uv-container', 'aqi-container', 'vis-container', 'press-container'
+            ];
+            
+            containers.forEach(id => {
+                initDrag(id);
+            });
+
+            // Sync horizontal scrolling ONLY for hourly lists
+            const hourlyContainers = [
+                'hourly-container', 'precip-container', 'wind-container', 'humidity-container',
+                'uv-container', 'aqi-container', 'vis-container', 'press-container'
+            ];
+
+            hourlyContainers.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                el.addEventListener('mouseenter', () => { activeSyncContainer = id; });
+                el.addEventListener('touchstart', () => { activeSyncContainer = id; }, {passive: true});
+                
+                el.addEventListener('scroll', () => {
+                    if (!syncScrollEnabled || activeSyncContainer !== id) return;
+                    
+                    window.requestAnimationFrame(() => {
+                        syncScrollEnabled = false; 
+                        
+                        hourlyContainers.forEach(targetId => {
+                            if (targetId !== id) {
+                                const targetEl = document.getElementById(targetId);
+                                if (targetEl) targetEl.scrollLeft = el.scrollLeft;
+                            }
+                        });
+                        
+                        if (id === 'hourly-container') {
+                            detectActiveDayFromScroll(el);
+                        }
+                        
+                        syncScrollEnabled = true;
+                    });
+                });
+            });
+        }
+
+        function initDrag(containerId) {
+            const slider = document.getElementById(containerId);
+            if (!slider) return;
+
+            let isDown = false; let startX; let scrollLeft;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true; 
+                activeSyncContainer = containerId;
+                slider.classList.add('active:cursor-grabbing');
+                startX = e.pageX - slider.offsetLeft; 
+                scrollLeft = slider.scrollLeft;
+            });
+            slider.addEventListener('mouseleave', () => { 
+                isDown = false; 
+                slider.classList.remove('active:cursor-grabbing'); 
+            });
+            slider.addEventListener('mouseup', () => { 
+                isDown = false; 
+                slider.classList.remove('active:cursor-grabbing');
+            });
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return; 
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft; 
+                const walk = (x - startX) * 2; 
+                slider.scrollLeft = scrollLeft - walk;
+            });
+        }
+
+        function detectActiveDayFromScroll(container) {
+            const items = container.querySelectorAll('.hourly-item');
+            if (items.length === 0) return;
+            
+            const scrollCenter = container.scrollLeft + (container.clientWidth / 3);
+            let activeItem = items[0];
+            
+            for (let item of items) {
+                if (item.offsetLeft - container.offsetLeft >= scrollCenter) {
+                    activeItem = item;
+                    break;
+                }
+            }
+            
+            const activeDay = parseInt(activeItem.getAttribute('data-day'));
+            if (activeDay !== currentSelectedDay && !isNaN(activeDay) && currentSelectedHourIndex === null) {
+                updateDashboardForDay(activeDay);
+            }
+        }
+
+        // ==========================================================
+        // DATA FETCHING & HISTORY SEARCH
+        // ==========================================================
+
+        async function autoDetectLocation() {
+            setLoading(true);
+            try {
+                const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+                if (!res.ok) throw new Error("Location detection failed");
+                const data = await res.json();
+                if (data.city) {
+                    fetchWeather(data.city);
+                } else {
+                    showWelcomeState();
+                }
+            } catch (err) {
+                showWelcomeState();
+            }
+        }
+
+        function showWelcomeState() {
+            setLoading(false);
+            welcomeState.classList.remove('hidden');
+        }
+
+        function setLoading(isLoading) {
+            const btn = settingsForm.querySelector('button');
+            if(btn) btn.disabled = isLoading;
+            
+            if (isLoading) {
+                errorContainer.classList.add('hidden');
+                welcomeState.classList.add('hidden');
+                weatherResults.classList.add('hidden');
+                loadingState.classList.remove('hidden');
+            } else {
+                loadingState.classList.add('hidden');
+            }
+        }
+
+        async function fetchWeather(city) {
+            setLoading(true);
+            try {
+                // Dynamically detect Arabic text for native language search
+                const isArabic = /[\u0600-\u06FF]/.test(city);
+                const langParam = isArabic ? 'ar' : 'en';
+                
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${langParam}&format=json`);
+                if (!geoRes.ok) throw new Error("Failed to connect to the geocoding service.");
+                const geoData = await geoRes.json();
+                
+                if (geoData.results && geoData.results.length > 0) {
+                    const { latitude, longitude, name, country, admin1 } = geoData.results[0];
+                    const region = admin1 ? `${admin1}, ${country}` : country;
+                    fetchWeatherByCoords(latitude, longitude, name, region);
+                } else {
+                    throw new Error("City not found.");
+                }
+            } catch (err) {
+                setLoading(false);
+                errorContainer.textContent = err.message;
+                errorContainer.classList.remove('hidden');
+                welcomeState.classList.remove('hidden');
+            }
+        }
+
+        async function fetchWeatherByCoords(latitude, longitude, name, country) {
+            setLoading(true);
+            try {
+                currentCityInfo = { name, country, lat: latitude, lon: longitude };
+                currentSelectedHourIndex = null; // Reset
+                updateClock(); 
+                
+                // Using models=best_match to ensure closest matching prediction
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,surface_pressure,wind_speed_10m,visibility,is_day&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day,uv_index,visibility,surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,sunrise,sunset,uv_index_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant&timezone=auto&forecast_days=16&models=best_match`;
+                const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&hourly=us_aqi&daily=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=16`;
+                const historyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&past_days=7&forecast_days=1&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+                
+                const [weatherRes, aqiRes, historyRes] = await Promise.all([
+                    fetch(url), 
+                    fetch(aqiUrl).catch(() => null),
+                    fetch(historyUrl).catch(() => null)
+                ]);
+                
+                if (!weatherRes.ok) {
+                    throw new Error(`Weather API Error: ${weatherRes.status}`);
+                }
+                
+                currentWeatherData = await weatherRes.json();
+                currentAqiData = (aqiRes && aqiRes.ok) ? await aqiRes.json() : null;
+                currentHistoryData = (historyRes && historyRes.ok) ? await historyRes.json() : null;
+                
+                updateFavoriteIcon(); 
+                renderWeather();
+                updateRadar(latitude, longitude, currentRadarLayer);
+            } catch (err) {
+                setLoading(false);
+                errorContainer.textContent = err.message;
+                errorContainer.classList.remove('hidden');
+                welcomeState.classList.remove('hidden');
+            }
+        }
+        
+        // --- Custom Historical Date Lookup ---
+        async function searchHistory() {
+            const inputEl = document.getElementById('history-date-input');
+            const input = inputEl.value.trim();
+            if (!input) return;
+
+            let targetDate = null;
+            const today = new Date();
+            const lowerInput = input.toLowerCase();
+
+            // Flexible parsing
+            if (lowerInput === 'yesterday') {
+                targetDate = new Date(today);
+                targetDate.setDate(today.getDate() - 1);
+            } else if (lowerInput === 'today') {
+                targetDate = new Date(today);
+            } else {
+                targetDate = new Date(input);
+            }
+
+            if (isNaN(targetDate.getTime())) {
+                alert("Could not parse that date. Try a standard format like MM/DD/YYYY or YYYY-MM-DD.");
+                return;
+            }
+            
+            // Check if future
+            if (targetDate > today) {
+                alert("Please select a date in the past.");
+                return;
+            }
+
+            const dateStr = targetDate.toISOString().split('T')[0];
+            const lat = currentCityInfo.lat;
+            const lon = currentCityInfo.lon;
+            const resultBox = document.getElementById('history-search-result');
+
+            // Open-Meteo Archive API
+            const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+
+            try {
+                resultBox.innerHTML = `<span class="text-[var(--c-accent)]">Searching records for ${dateStr}...</span>`;
+                resultBox.classList.remove('hidden');
+                resultBox.classList.add('flex');
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data && data.daily && data.daily.time && data.daily.time.length > 0 && data.daily.temperature_2m_max[0] !== null) {
+                    const maxT = convertTemp(data.daily.temperature_2m_max[0]);
+                    const minT = convertTemp(data.daily.temperature_2m_min[0]);
+                    const precip = data.daily.precipitation_sum[0] || 0;
+                    const wmo = data.daily.weather_code[0];
+                    const icon = getWeatherIcon(mapWmoCode(wmo), 1);
+                    const wind = formatSpeed(data.daily.wind_speed_10m_max[0] || 0);
+
+                    const prettyDate = targetDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                    resultBox.innerHTML = `
+                        <div tabindex="0" class="flex justify-between items-center w-full bg-[var(--c-input)] p-3 rounded-xl border border-[var(--c-border)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-[var(--c-accent)] uppercase tracking-wider mb-1">${prettyDate}</span>
+                                <span class="text-white font-medium text-sm leading-tight">${mapWmoCode(wmo)}</span>
+                                <span class="text-[11px] text-[#9aa0a6] mt-1">H: <span class="text-white">${maxT}°</span> L: <span class="text-white">${minT}°</span></span>
+                            </div>
+                            <div class="scale-90">${icon}</div>
+                            <div class="flex flex-col text-right text-xs text-[#9aa0a6] gap-1.5 font-medium">
+                                <span>💧 ${precip > 0 ? formatPrecip(precip) : '0 mm'}</span>
+                                <span>💨 ${wind}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                     resultBox.innerHTML = `<span tabindex="0" class="text-red-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded">No historical data recorded for this date yet. Try a different date.</span>`;
+                }
+            } catch(e) {
+                 resultBox.innerHTML = `<span tabindex="0" class="text-red-400 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded">Error connecting to historical database.</span>`;
+            }
+        }
+
+
+        // ==========================================================
+        // DATA FORMATTING & RENDERING
+        // ==========================================================
+
+        function getDaytimeWeatherCode(data, dayIndex) {
+            const targetDateStr = data.daily.time[dayIndex];
+            let startHr = data.hourly.time.findIndex(t => t.startsWith(targetDateStr));
+            if (startHr === -1) return data.daily.weather_code[dayIndex];
+
+            let daytimeCodes = [];
+            for(let i = startHr + 6; i <= startHr + 18 && i < data.hourly.time.length; i++) {
+                if(data.hourly.weather_code[i] !== undefined) {
+                    daytimeCodes.push(data.hourly.weather_code[i]);
+                }
+            }
+            if(daytimeCodes.length === 0) return data.daily.weather_code[dayIndex];
+            return Math.max(...daytimeCodes); 
+        }
+
+        function getIntensityBar(percent, colorClass) {
+            const safePercent = Math.min(100, Math.max(0, percent));
+            return `
+                <div class="intensity-bar w-full h-1 flex-shrink-0 mt-1 block">
+                    <div class="intensity-fill ${colorClass}" style="width: ${safePercent}%;"></div>
+                </div>
+            `;
+        }
+
+        function changeRadarLayer(layer) {
+            currentRadarLayer = layer;
+            const buttons = document.querySelectorAll('.radar-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'text-[var(--c-bg)]', 'bg-[var(--c-accent)]', 'font-medium');
+                btn.classList.add('text-[var(--c-text-muted)]');
+                // Ensure focus/hover styles apply cleanly
+                btn.style.boxShadow = 'none';
+            });
+            const activeBtn = document.getElementById(`layer-${layer}`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-[var(--c-text-muted)]');
+                activeBtn.classList.add('active');
+            }
+            
+            if(currentCityInfo.lat !== 0) {
+                updateRadar(currentCityInfo.lat, currentCityInfo.lon, layer);
+            }
+        }
+
+        function updateRadar(lat, lon, layer) {
+            const radarContainer = document.getElementById('radar-container');
+            const unitTemp = units.temp === 'C' ? '%C2%B0C' : '%C2%B0F';
+            const unitWind = units.wind === 'kmh' ? 'km/h' : 'mph';
+            const unitRain = units.precip === 'mm' ? 'mm' : 'in';
+            // Using embed2.html but strictly defining detailPosition=top to avoid sidebar glitching
+            const url = `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&zoom=6&level=surface&overlay=${layer}&product=radar&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detailLat=${lat}&detailLon=${lon}&detailPosition=top&metricWind=${unitWind}&metricTemp=${unitTemp}&radarRange=-1`;
+            if(radarContainer) {
+                radarContainer.innerHTML = `<iframe width="100%" height="100%" src="${url}" frameborder="0" style="border:none;" class="w-full h-full pointer-events-auto" tabindex="-1"></iframe>`;
+            }
+        }
+
+        function generateInsights(data) {
+            let insights = [];
+            const unitStr = units.temp === 'C' ? '°C' : '°F';
+            const todayWmo = data.daily.weather_code[0];
+            const tomorrowWmo = data.daily.weather_code[1];
+            
+            if (todayWmo === 95 || todayWmo === 96 || todayWmo === 99) {
+                insights.push({ type: 'alert', text: 'Severe thunderstorms expected today.' });
+            } else if (tomorrowWmo === 95 || tomorrowWmo === 96 || tomorrowWmo === 99) {
+                insights.push({ type: 'alert', text: 'Severe thunderstorms approaching tomorrow.' });
+            }
+
+            const maxWindToday = data.daily.wind_speed_10m_max[0];
+            const windThreshold = units.wind === 'kmh' ? 70 : 45;
+            if (maxWindToday > windThreshold) {
+                insights.push({ type: 'alert', text: `Dangerous high winds expected today, gusting up to ${formatSpeed(maxWindToday)}.` });
+            }
+
+            const currentIso = data.current.time;
+            const currentHourIso = currentIso.substring(0, 14) + "00";
+            let startHr = data.hourly.time.indexOf(currentHourIso);
+            if (startHr === -1) startHr = 0;
+
+            let rainStartHour = null; let willSnow = false;
+            for (let i = startHr; i < startHr + 24; i++) {
+                if (data.hourly.precipitation[i] > 0.5) { 
+                    rainStartHour = new Date(data.hourly.time[i]);
+                    if (data.hourly.weather_code[i] >= 71 && data.hourly.weather_code[i] <= 75) willSnow = true;
+                    break;
+                }
+            }
+
+            if (rainStartHour) {
+                const timeStr = rainStartHour.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const isToday = rainStartHour.getDate() === new Date().getDate();
+                insights.push({ type: 'info', text: `Expect ${willSnow ? 'snow' : 'rain'} to start around ${timeStr} ${isToday ? 'today' : 'tomorrow'}.` });
+            }
+
+            const tempToday = convertTemp(data.daily.temperature_2m_max[0]);
+            const tempIn2Days = convertTemp(data.daily.temperature_2m_max[2]);
+            const tempDiff = tempIn2Days - tempToday;
+            const threshold = units.temp === 'C' ? 4 : 7;
+            
+            if (tempDiff >= threshold) {
+                insights.push({ type: 'trend', text: `Warming up significantly over the next couple of days, reaching highs of ${tempIn2Days}${unitStr}.` });
+            } else if (tempDiff <= -threshold) {
+                insights.push({ type: 'trend', text: `Cooling down noticeably in the coming days, with highs dropping to ${tempIn2Days}${unitStr}.` });
+            }
+
+            const section = document.getElementById('insights-section');
+            const container = document.getElementById('insights-container');
+            if (insights.length > 0) {
+                container.innerHTML = '';
+                insights.forEach(insight => {
+                    let bgClass = 'bg-[var(--c-input)] border-[var(--c-border)] text-white';
+                    let icon = '';
+                    if (insight.type === 'alert') {
+                        bgClass = 'bg-red-900/40 border-red-500/50 text-red-100';
+                        icon = `<svg class="text-red-400 mr-3 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+                    } else if (insight.type === 'info') {
+                        bgClass = 'bg-[var(--c-accent)]/10 border-[var(--c-accent)]/30 text-blue-100';
+                        icon = `<svg class="text-[var(--c-accent)] mr-3 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+                    } else if (insight.type === 'trend') {
+                        bgClass = 'bg-orange-500/10 border-orange-500/30 text-orange-100';
+                        icon = `<svg class="text-orange-400 mr-3 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`;
+                    }
+                    container.innerHTML += `
+                        <div tabindex="0" class="flex items-center p-3 rounded-xl border ${bgClass} text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]">
+                            ${icon}<span>${insight.text}</span>
+                        </div>
+                    `;
+                });
+                section.classList.remove('hidden');
+                applySectionStates(); 
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        function buildFullHourlyForecast(data) {
+            let mainHTML = '';
+            let precipHTML = '';
+            let windHTML = '';
+            let humidHTML = '';
+            let uvHTML = '';
+            let aqiHTML = '';
+            let visHTML = '';
+            let pressHTML = '';
+
+            const currentIso = data.current.time;
+            const currentHourIso = currentIso.substring(0, 14) + "00";
+            let startIndex = data.hourly.time.indexOf(currentHourIso);
+            if (startIndex === -1) {
+                const currTimeMs = new Date(currentIso).getTime();
+                startIndex = data.hourly.time.findIndex(t => new Date(t).getTime() >= currTimeMs);
+                if (startIndex === -1) startIndex = 0;
+            }
+
+            data.daily.time.forEach((t, idx) => dayMap[t] = idx);
+            const windMaxBase = units.wind === 'kmh' ? 80 : 50;
+
+            for (let i = startIndex; i < data.hourly.time.length; i++) {
+                const timeStr = data.hourly.time[i];
+                const dateStr = timeStr.split('T')[0];
+                const dayIdx = dayMap[dateStr] !== undefined ? dayMap[dateStr] : 0;
+                
+                const hourDate = new Date(timeStr);
+                const displayHour = (i === startIndex) ? 'Now' : hourDate.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+                
+                const temp = convertTemp(data.hourly.temperature_2m[i]);
+                const feelsLike = convertTemp(data.hourly.apparent_temperature[i]); 
+                const isDay = data.hourly.is_day[i];
+                const icon = getWeatherIcon(mapWmoCode(data.hourly.weather_code[i]), isDay);
+                const precipProb = data.hourly.precipitation_probability[i] || 0;
+                const precipMm = data.hourly.precipitation[i] || 0;
+                const humidity = data.hourly.relative_humidity_2m[i] || 0;
+                
+                const windRaw = data.hourly.wind_speed_10m[i] || 0;
+                const windSpeed = formatSpeed(windRaw).replace(' km/h', 'km').replace(' mph', 'mi');
+                const windDirDeg = data.hourly.wind_direction_10m[i] || 0;
+                const hrWindPercent = Math.min(100, (windRaw / windMaxBase) * 100);
+                
+                const windDirArrow = `<svg style="transform: rotate(${windDirDeg}deg);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
+                
+                let precipBarHeight = Math.min(100, (precipMm / 10) * 100);
+                if(precipProb > 0 && precipBarHeight < 5) precipBarHeight = 5;
+
+                const precipDisplay = (precipProb > 0 || precipMm > 0) ? `<span class="text-[var(--c-accent)] font-bold">${formatPrecip(precipMm)}</span>` : `<span class="text-[#5f6368]">0 mm</span>`;
+
+                const bgClass = isDay ? 'bg-transparent' : 'bg-black/20';
+
+                // 1. Main Hourly Item (Inside Mega Card)
+                mainHTML += `
+                    <div id="hourly-item-${i}" class="hourly-item flex flex-col items-center w-[85px] flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl py-2 px-1 transition-colors ${bgClass} cursor-pointer" data-day="${dayIdx}" onclick="selectHour(${i})" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectHour(${i});">
+                        <span class="font-medium text-white text-lg mb-1">${temp}°</span>
+                        <div class="my-1 scale-[0.65] h-8 flex items-center justify-center pointer-events-none">${icon}</div>
+                        <span class="text-[11px] text-[var(--c-text-muted)] font-medium leading-none mb-1 pointer-events-none">Feels ${feelsLike}°</span>
+                        <span class="text-xs text-[var(--c-text-muted)] font-medium mb-1 pointer-events-none">${displayHour}</span>
+                        <!-- Compact Inline Stats -->
+                        <div class="w-full flex flex-col gap-1 text-[10px] text-[var(--c-text-muted)] border-t border-[var(--c-border)] pt-2 px-0.5 pointer-events-none">
+                            <div class="flex flex-col w-full mb-1">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[var(--c-accent)]"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                                    <span class="text-[var(--c-accent)] font-bold">${precipMm > 0 ? formatPrecip(precipMm) : '0 mm'}</span>
+                                </div>
+                                ${getIntensityBar(precipBarHeight, 'bg-[var(--c-accent)]')}
+                            </div>
+                            <div class="flex flex-col w-full mb-1">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[#e8eaed]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg></span>
+                                    <div class="flex items-center gap-0.5 text-white font-bold">${Math.round(windRaw)} <span class="text-[var(--c-text-muted)]">${windDirArrow}</span></div>
+                                </div>
+                                ${getIntensityBar(hrWindPercent, 'bg-[#e8eaed]')}
+                            </div>
+                            <div class="flex flex-col w-full">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[var(--c-text-muted)]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></span>
+                                    <span class="text-white font-bold">${humidity}%</span>
+                                </div>
+                                ${getIntensityBar(humidity, 'bg-[var(--c-text-muted)]')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 2. Precip Item
+                precipHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-xs text-white font-bold">${formatPrecip(precipMm)}</span>
+                        <span class="text-[9px] text-[#5f6368] mt-0.5 mb-1.5">${precipProb}% chance</span>
+                        ${getIntensityBar(precipBarHeight, 'bg-[var(--c-accent)]')}
+                    </div>
+                `;
+
+                // 3. Wind Item
+                windHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-xs text-white font-bold">${windSpeed}</span>
+                        <div class="my-1.5 text-[#e8eaed]">${windDirArrow}</div>
+                        ${getIntensityBar(hrWindPercent, 'bg-[#e8eaed]')}
+                    </div>
+                `;
+
+                // 4. Humidity Item
+                humidHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-xs text-white font-bold">${humidity}%</span>
+                        <div class="mt-2 w-8 flex justify-center">${getIntensityBar(humidity, 'bg-[var(--c-text-muted)]')}</div>
+                    </div>
+                `;
+
+                const uv = data.hourly.uv_index ? (data.hourly.uv_index[i] || 0) : 0;
+                const uvStatus = getUVCategory(uv);
+                const uvPercent = Math.min(100, (uv / 11) * 100);
+                uvHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-xs text-white font-bold">${uv.toFixed(1)}</span>
+                        <div class="mt-2 w-8 flex justify-center">${getIntensityBar(uvPercent, uvStatus.color.split(' ')[0])}</div>
+                    </div>
+                `;
+
+                let aqi = 0;
+                if (currentAqiData && currentAqiData.hourly && currentAqiData.hourly.us_aqi[i]) {
+                    aqi = currentAqiData.hourly.us_aqi[i];
+                }
+                let aqiColor = 'bg-green-400';
+                if (aqi > 300) aqiColor = 'bg-purple-600';
+                else if (aqi > 200) aqiColor = 'bg-purple-400';
+                else if (aqi > 150) aqiColor = 'bg-red-500';
+                else if (aqi > 100) aqiColor = 'bg-orange-400';
+                else if (aqi > 50) aqiColor = 'bg-yellow-400';
+                
+                aqiHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-xs text-white font-bold">${aqi}</span>
+                        <div class="mt-2 w-8 flex justify-center">${getIntensityBar(Math.min(100, (aqi/300)*100), aqiColor)}</div>
+                    </div>
+                `;
+
+                const visRaw = data.hourly.visibility ? (data.hourly.visibility[i] || 0) : 0;
+                visHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-[11px] text-white font-bold whitespace-nowrap">${formatVisibility(visRaw)}</span>
+                    </div>
+                `;
+
+                const pressRaw = data.hourly.surface_pressure ? (data.hourly.surface_pressure[i] || 0) : 0;
+                pressHTML += `
+                    <div class="hourly-stat-item flex flex-col items-center w-[75px] flex-shrink-0 pt-1 pb-2 focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] rounded-xl" tabindex="0">
+                        <span class="text-[10px] text-[var(--c-text-muted)] mb-3">${displayHour}</span>
+                        <span class="text-[11px] text-white font-bold whitespace-nowrap">${formatPressure(pressRaw)}</span>
+                    </div>
+                `;
+            }
+
+            const hourlyContainer = document.getElementById('hourly-container');
+            if(hourlyContainer) hourlyContainer.innerHTML = mainHTML;
+            
+            const precipContainer = document.getElementById('precip-container');
+            if(precipContainer) precipContainer.innerHTML = precipHTML;
+
+            const windContainer = document.getElementById('wind-container');
+            if(windContainer) windContainer.innerHTML = windHTML;
+
+            const humidityContainer = document.getElementById('humidity-container');
+            if(humidityContainer) humidityContainer.innerHTML = humidHTML;
+            
+            const uvContainer = document.getElementById('uv-container');
+            if(uvContainer) uvContainer.innerHTML = uvHTML;
+
+            const aqiContainer = document.getElementById('aqi-container');
+            if(aqiContainer) aqiContainer.innerHTML = aqiHTML;
+
+            const visContainer = document.getElementById('vis-container');
+            if(visContainer) visContainer.innerHTML = visHTML;
+
+            const pressContainer = document.getElementById('press-container');
+            if(pressContainer) pressContainer.innerHTML = pressHTML;
+        }
+
+        function updateAstronomicalText(dayIndex, targetHourNum) {
+            const data = currentWeatherData;
+            if (!data) return;
+
+            const riseStr = data.daily.sunrise[dayIndex];
+            const setStr = data.daily.sunset[dayIndex];
+            
+            const sunriseTime = new Date(riseStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const sunsetTime = new Date(setStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            document.getElementById('det-sunrise').textContent = sunriseTime;
+            document.getElementById('det-sunset').textContent = sunsetTime;
+
+            const riseHour = getLocalHour(riseStr);
+            const setHour = getLocalHour(setStr);
+            
+            let duration = setHour - riseHour;
+            if (duration < 0) duration += 24; 
+            
+            const dayPct = (duration / 24) * 100;
+            const nightPct = 100 - dayPct;
+            
+            const sunPctEl = document.getElementById('sun-percentages');
+            if(sunPctEl) {
+                sunPctEl.innerHTML = `<span class="text-orange-200/80">${Math.round(dayPct)}% Daylight</span> <span class="mx-2 text-white/20">•</span> <span class="text-blue-200/60">${Math.round(nightPct)}% Night</span>`;
+            }
+
+            let isNight = false; 
+            let sunStatusText = '';
+
+            if (targetHourNum !== null) {
+                // Determine status relative to target hour
+                const isUp = (targetHourNum >= riseHour && targetHourNum < setHour) || (riseHour > setHour && (targetHourNum >= riseHour || targetHourNum < setHour));
+                if (!isUp) {
+                    isNight = true;
+                    let diff = riseHour - targetHourNum;
+                    if (diff < 0) diff += 24;
+                    sunStatusText = `Dawn in ${Math.floor(diff)}h ${Math.round((diff%1)*60)}m`;
+                } else {
+                    isNight = false;
+                    let diff = setHour - targetHourNum;
+                    if (diff < 0) diff += 24;
+                    sunStatusText = `Dusk in ${Math.floor(diff)}h ${Math.round((diff%1)*60)}m`;
+                }
+            } else {
+                sunStatusText = `${Math.floor(duration)}h ${Math.round((duration%1)*60)}m total`;
+            }
+
+            document.getElementById('sun-status-text').textContent = sunStatusText;
+
+            // NEW: Position the Sun SVG Elements dynamically along the arc
+            if (targetHourNum !== null) {
+                document.getElementById('sunrise-marker').setAttribute('transform', `translate(5, 50)`);
+                document.getElementById('sunset-marker').setAttribute('transform', `translate(95, 50)`);
+                
+                let isUp = false;
+                let progress = 0;
+                
+                if (riseHour < setHour) {
+                    isUp = targetHourNum >= riseHour && targetHourNum <= setHour;
+                    if(isUp) progress = (targetHourNum - riseHour) / (setHour - riseHour);
+                } else {
+                    isUp = targetHourNum >= riseHour || targetHourNum <= setHour;
+                    if (isUp) {
+                        if (targetHourNum >= riseHour) progress = (targetHourNum - riseHour) / ((24 - riseHour) + setHour);
+                        else progress = ((24 - riseHour) + targetHourNum) / ((24 - riseHour) + setHour);
+                    }
+                }
+                
+                const sunDot = document.getElementById('sun-dot');
+                const sunArc = document.getElementById('sun-arc-fill');
+                
+                if (isUp) {
+                    // Map progress (0 to 1) to an angle between PI (left) and 0 (right)
+                    let angle = Math.PI - (progress * Math.PI);
+                    let cx = 50 + 45 * Math.cos(angle);
+                    let cy = 50 - 45 * Math.sin(angle);
+                    
+                    sunDot.setAttribute('cx', cx);
+                    sunDot.setAttribute('cy', cy);
+                    sunDot.style.opacity = '1';
+                    
+                    // Draw arc trail from Dawn (5, 50) up to current position
+                    let pathD = `M 5,50 A 45,45 0 0,1 ${cx},${cy}`;
+                    sunArc.setAttribute('d', pathD);
+                } else {
+                    // Night time: Move dot along the bottom invisible arc
+                    let angle = 0;
+                    if (targetHourNum < riseHour) {
+                         angle = Math.PI + Math.PI * (targetHourNum / riseHour);
+                    } else {
+                         angle = 0 - Math.PI * ((targetHourNum - setHour) / (24 - setHour));
+                    }
+                    let cx = 50 + 45 * Math.cos(angle);
+                    let cy = 50 - 45 * Math.sin(angle);
+                    
+                    sunDot.setAttribute('cx', cx);
+                    sunDot.setAttribute('cy', cy);
+                    sunDot.style.opacity = '0.3';
+                    sunArc.setAttribute('d', ''); // Hide fill at night
+                }
+            } else {
+                // Default center position for future daily overview
+                document.getElementById('sunrise-marker').setAttribute('transform', `translate(5, 50)`);
+                document.getElementById('sunset-marker').setAttribute('transform', `translate(95, 50)`);
+                
+                const sunDot = document.getElementById('sun-dot');
+                const sunArc = document.getElementById('sun-arc-fill');
+                sunDot.setAttribute('cx', 50);
+                sunDot.setAttribute('cy', 5);
+                sunDot.style.opacity = '1';
+                sunArc.setAttribute('d', `M 5,50 A 45,45 0 0,1 50,5`);
+            }
+
+            // --- Moon Processing ---
+            const targetDateObj = new Date(data.daily.time[dayIndex]);
+            const moonPhaseVal = getMoonPhase(targetDateObj);
+            const phaseName = getMoonPhaseName(moonPhaseVal);
+            
+            drawMoonPhaseSVG(moonPhaseVal);
+
+            const illumination = Math.round((0.5 * (1 - Math.cos(moonPhaseVal * 2 * Math.PI))) * 100);
+            let lunarDateStr = "";
+            try {
+                const dateAdjusted = new Date(targetDateObj.getTime() + Math.abs(targetDateObj.getTimezoneOffset() * 60000));
+                lunarDateStr = new Intl.DateTimeFormat('en-US-u-ca-islamic', {day: 'numeric', month: 'long'}).format(dateAdjusted);
+            } catch(e) {
+                lunarDateStr = `Day ${(moonPhaseVal * 29.5305).toFixed(1)}`;
+            }
+            
+            const moonDetailsEl = document.getElementById('moon-details');
+            if(moonDetailsEl) {
+                moonDetailsEl.innerHTML = `<span>Lunar Date <span class="text-white ml-1">${lunarDateStr}</span></span><span>Illumination <span class="text-white ml-1">${illumination}%</span></span>`;
+            }
+            
+            let mRiseHour = (6 + (moonPhaseVal * 24)) % 24;
+            let mSetHour = (18 + (moonPhaseVal * 24)) % 24;
+
+            document.getElementById('det-moonrise').textContent = formatHour(mRiseHour);
+            document.getElementById('det-moonset').textContent = formatHour(mSetHour);
+
+            let mMoonStatusText = '';
+
+            if (targetHourNum !== null) {
+                let isUp = false;
+                if (mRiseHour < mSetHour) {
+                    isUp = targetHourNum >= mRiseHour && targetHourNum < mSetHour;
+                } else {
+                    isUp = targetHourNum >= mRiseHour || targetHourNum < mSetHour;
+                }
+
+                if (isUp) {
+                    let diff = mSetHour - targetHourNum;
+                    if(diff < 0) diff += 24;
+                    mMoonStatusText = `Set in ${Math.floor(diff)}h ${Math.round((diff%1)*60)}m`;
+                } else {
+                    let diff = mRiseHour - targetHourNum;
+                    if(diff < 0) diff += 24;
+                    mMoonStatusText = `Rise in ${Math.floor(diff)}h ${Math.round((diff%1)*60)}m`;
+                }
+            } else {
+                let mDuration = mSetHour - mRiseHour;
+                if (mDuration < 0) mDuration += 24; 
+                mMoonStatusText = `${Math.floor(mDuration)}h ${Math.round((mDuration%1)*60)}m up`;
+            }
+
+            document.getElementById('moon-status-text').textContent = `${phaseName} • ${mMoonStatusText}`;
+
+            // NEW: Position the Moon SVG Elements dynamically
+            if (targetHourNum !== null) {
+                document.getElementById('moonrise-marker').setAttribute('transform', `translate(5, 50)`);
+                document.getElementById('moonset-marker').setAttribute('transform', `translate(95, 50)`);
+                
+                let mIsUp = false;
+                let mProgress = 0;
+                
+                if (mRiseHour < mSetHour) {
+                    mIsUp = targetHourNum >= mRiseHour && targetHourNum <= mSetHour;
+                    if (mIsUp) mProgress = (targetHourNum - mRiseHour) / (mSetHour - mRiseHour);
+                } else {
+                    mIsUp = targetHourNum >= mRiseHour || targetHourNum <= mSetHour;
+                    if (mIsUp) {
+                        if (targetHourNum >= mRiseHour) mProgress = (targetHourNum - mRiseHour) / ((24 - mRiseHour) + mSetHour);
+                        else mProgress = ((24 - mRiseHour) + targetHourNum) / ((24 - mRiseHour) + mSetHour);
+                    }
+                }
+                
+                const moonDot = document.getElementById('moon-dot');
+                const moonArc = document.getElementById('moon-arc-fill');
+                
+                if (mIsUp) {
+                    let angle = Math.PI - (mProgress * Math.PI);
+                    let cx = 50 + 45 * Math.cos(angle);
+                    let cy = 50 - 45 * Math.sin(angle);
+                    
+                    moonDot.setAttribute('cx', cx);
+                    moonDot.setAttribute('cy', cy);
+                    moonDot.style.opacity = '1';
+                    
+                    let pathD = `M 5,50 A 45,45 0 0,1 ${cx},${cy}`;
+                    moonArc.setAttribute('d', pathD);
+                } else {
+                    // Moon is below horizon
+                    let angle = 0;
+                    if (targetHourNum < mRiseHour && mRiseHour > mSetHour && targetHourNum > mSetHour) {
+                        angle = Math.PI + Math.PI * ((targetHourNum - mSetHour) / (mRiseHour - mSetHour));
+                    } else if (targetHourNum < mRiseHour && mRiseHour < mSetHour) {
+                        angle = Math.PI + Math.PI * (targetHourNum / mRiseHour);
+                    } else {
+                        angle = 0 - Math.PI * ((targetHourNum - mSetHour) / (24 - mSetHour));
+                    }
+                    let cx = 50 + 45 * Math.cos(angle);
+                    let cy = 50 - 45 * Math.sin(angle);
+                    
+                    moonDot.setAttribute('cx', cx);
+                    moonDot.setAttribute('cy', cy);
+                    moonDot.style.opacity = '0.3';
+                    moonArc.setAttribute('d', '');
+                }
+            } else {
+                document.getElementById('moonrise-marker').setAttribute('transform', `translate(5, 50)`);
+                document.getElementById('moonset-marker').setAttribute('transform', `translate(95, 50)`);
+                
+                const moonDot = document.getElementById('moon-dot');
+                const moonArc = document.getElementById('moon-arc-fill');
+                moonDot.setAttribute('cx', 50);
+                moonDot.setAttribute('cy', 5);
+                moonDot.style.opacity = '1';
+                moonArc.setAttribute('d', `M 5,50 A 45,45 0 0,1 50,5`);
+            }
+        }
+
+        function renderWeather() {
+            if (!currentWeatherData) return;
+            const data = currentWeatherData;
+            
+            setLoading(false); 
+            weatherResults.classList.remove('hidden');
+            
+            // Format city name correctly from saved object
+            const locationStr = currentCityInfo.name ? currentCityInfo.name.split(',')[0] : "Location";
+            const regionStr = currentCityInfo.country ? currentCityInfo.country : "";
+            
+            document.getElementById('city-name').textContent = locationStr;
+            document.getElementById('date-time').textContent = regionStr; 
+            
+            // Global Background Effect based on *current* weather
+            applyWeatherEffect(data.current.weather_code, data.current.is_day);
+            
+            generateInsights(data);
+            buildFullHourlyForecast(data);
+
+            // === MEGA CARD: DAILY TABS ===
+            let dailyHTML = '';
+            for (let i = 0; i <= 15; i++) {
+                if (!data.daily.time[i]) break;
+                
+                const dateObj = new Date(data.daily.time[i]);
+                const adjustedDate = new Date(dateObj.getTime() + Math.abs(dateObj.getTimezoneOffset() * 60000));
+                
+                let dayName = adjustedDate.toLocaleDateString('en-US', { weekday: 'short' });
+                if (i === 0) dayName = 'Today';
+                if (i === 1) dayName = 'Tomorrow';
+
+                const maxTemp = convertTemp(data.daily.temperature_2m_max[i]);
+                const minTemp = convertTemp(data.daily.temperature_2m_min[i]);
+                const dominantDayCode = getDaytimeWeatherCode(data, i);
+                const feelsLikeDaily = convertTemp(data.daily.apparent_temperature_max[i]);
+                const icon = getWeatherIcon(mapWmoCode(dominantDayCode), 1); 
+
+                const precipProb = data.daily.precipitation_probability_max[i] || 0;
+                const precipMm = data.daily.precipitation_sum[i] || 0;
+                
+                const windRaw = data.daily.wind_speed_10m_max[i] || 0;
+                const windSpeed = formatSpeed(windRaw).replace(' km/h', 'km').replace(' mph', 'mi');
+                const windDirDeg = data.daily.wind_direction_10m_dominant[i] || 0;
+                const hrWindPercent = Math.min(100, (windRaw / (units.wind === 'kmh' ? 80 : 50)) * 100);
+                const windDirArrow = `<svg style="transform: rotate(${windDirDeg}deg);" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
+                
+                let precipBarHeight = Math.min(100, (precipMm / 10) * 100);
+                if(precipProb > 0 && precipBarHeight < 5) precipBarHeight = 5;
+
+                const precipDisplay = (precipProb > 0 || precipMm > 0) ? `<span class="text-[var(--c-accent)] font-bold">${formatPrecip(precipMm)}</span>` : `<span class="text-[#5f6368]">0 mm</span>`;
+
+                const targetDateStr = data.daily.time[i];
+                let startHr = data.hourly.time.findIndex(t => t.startsWith(targetDateStr));
+                if (startHr === -1) startHr = 0;
+                let sumHum = 0; let hrCount = 0;
+                for (let j = startHr; j < startHr + 24 && j < data.hourly.time.length; j++) {
+                    sumHum += data.hourly.relative_humidity_2m[j]; hrCount++;
+                }
+                const humidity = hrCount > 0 ? Math.round(sumHum / hrCount) : 0;
+
+                dailyHTML += `
+                    <div class="daily-tab flex flex-col items-center min-w-[95px] p-3 flex-shrink-0 border border-transparent rounded-2xl cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]" onclick="selectDay(${i}, true)" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectDay(${i}, true);">
+                        <span class="text-[12px] font-medium text-[var(--c-text-muted)] day-name">${dayName}</span>
+                        <div class="my-1 scale-75 h-8 flex items-center justify-center">${icon}</div>
+                        <span class="text-[10px] text-[var(--c-text-muted)] font-medium leading-none mb-1">Feels ${feelsLikeDaily}°</span>
+                        <div class="text-[12px] font-bold mb-2 flex gap-1">
+                            <span class="text-white">${maxTemp}°</span><span class="text-[#5f6368]">${minTemp}°</span>
+                        </div>
+                        <!-- Compact Inline Stats -->
+                        <div class="w-full flex flex-col gap-1 text-[10px] text-[var(--c-text-muted)] border-t border-[var(--c-border)] pt-2 px-1">
+                            <div class="flex flex-col w-full mb-1">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[var(--c-accent)]"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                                    <span class="text-[var(--c-accent)] font-bold">${precipMm > 0 ? formatPrecip(precipMm) : '0 mm'}</span>
+                                </div>
+                                ${getIntensityBar(precipBarHeight, 'bg-[var(--c-accent)]')}
+                            </div>
+                            <div class="flex flex-col w-full mb-1">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[#e8eaed]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg></span>
+                                    <div class="flex items-center gap-0.5 text-white font-bold">${Math.round(windRaw)} <span class="text-[var(--c-text-muted)]">${windDirArrow}</span></div>
+                                </div>
+                                ${getIntensityBar(hrWindPercent, 'bg-[#e8eaed]')}
+                            </div>
+                            <div class="flex flex-col w-full">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-[var(--c-text-muted)]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></span>
+                                    <span class="text-white font-bold">${humidity}%</span>
+                                </div>
+                                ${getIntensityBar(humidity, 'bg-[var(--c-text-muted)]')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('daily-container').innerHTML = dailyHTML;
+            
+            // === 7-DAY HISTORY TABS ===
+            let historyHTML = '';
+            if (currentHistoryData && currentHistoryData.daily && currentHistoryData.daily.time.length >= 7) {
+                for (let i = 0; i < 7; i++) {
+                    const dateObj = new Date(currentHistoryData.daily.time[i]);
+                    const adjustedDate = new Date(dateObj.getTime() + Math.abs(dateObj.getTimezoneOffset() * 60000));
+                    
+                    let dayName = adjustedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    if (i === 6) dayName = 'Yesterday';
+
+                    const maxTemp = convertTemp(currentHistoryData.daily.temperature_2m_max[i]);
+                    const minTemp = convertTemp(currentHistoryData.daily.temperature_2m_min[i]);
+                    const iconCode = currentHistoryData.daily.weather_code[i];
+                    const icon = getWeatherIcon(mapWmoCode(iconCode), 1); 
+
+                    const precipMm = currentHistoryData.daily.precipitation_sum[i] || 0;
+                    const precipDisplay = precipMm > 0 ? `<span class="text-[var(--c-accent)] font-bold">${formatPrecip(precipMm)}</span>` : `<span class="text-[#5f6368]">0 mm</span>`;
+
+                    historyHTML += `
+                        <div tabindex="0" class="daily-tab flex flex-col items-center min-w-[95px] p-3 flex-shrink-0 border border-[var(--c-border)] rounded-2xl bg-[var(--c-input)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]">
+                            <span class="text-[10px] font-medium text-[var(--c-text-muted)] text-center w-full truncate mb-1">${dayName}</span>
+                            <div class="my-1 scale-75 h-8 flex items-center justify-center">${icon}</div>
+                            <div class="text-[12px] font-bold mb-2 flex gap-1">
+                                <span class="text-white">${maxTemp}°</span><span class="text-[#5f6368]">${minTemp}°</span>
+                            </div>
+                            <div class="w-full flex flex-col gap-1 text-[10px] text-[var(--c-text-muted)] border-t border-[var(--c-border)] pt-2 px-1 text-center">
+                                ${precipDisplay}
+                            </div>
+                        </div>
+                    `;
+                }
+                document.getElementById('history-container').innerHTML = historyHTML;
+                document.getElementById('history-section').classList.remove('hidden');
+            } else {
+                document.getElementById('history-section').classList.add('hidden');
+            }
+
+            selectDay(currentSelectedDay, false); 
+        }
+
+        window.selectHour = function(index) {
+            const data = currentWeatherData;
+            if (!data) return;
+            currentSelectedHourIndex = index;
+            
+            highlightHourlyItem(index);
+            
+            // Find which day this hour belongs to
+            const timeStr = data.hourly.time[index];
+            const dateStr = timeStr.split('T')[0];
+            const dayIndex = dayMap[dateStr] !== undefined ? dayMap[dateStr] : 0;
+            currentSelectedDay = dayIndex;
+
+            // Highlight daily tab
+            document.querySelectorAll('.daily-tab').forEach((tab, idx) => {
+                const dayName = tab.querySelector('.day-name');
+                if (idx === dayIndex) {
+                    tab.classList.add('bg-[var(--c-accent)]/20', 'border-[var(--c-accent)]/50');
+                    if(dayName) dayName.classList.replace('text-[var(--c-text-muted)]', 'text-[var(--c-accent)]');
+                } else {
+                    tab.classList.remove('bg-[var(--c-accent)]/20', 'border-[var(--c-accent)]/50');
+                    if(dayName) dayName.classList.replace('text-[var(--c-accent)]', 'text-[var(--c-text-muted)]');
+                }
+            });
+
+            const targetDateObj = new Date(timeStr);
+            const adjustedDate = new Date(targetDateObj.getTime() + Math.abs(targetDateObj.getTimezoneOffset() * 60000));
+            
+            // Update Mega Card Text
+            const isToday = (dayIndex === 0);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            let dayLabelStr = isToday ? "Today" : adjustedDate.toLocaleDateString('en-US', { weekday: 'long' });
+            dayLabelStr += `, ${months[adjustedDate.getMonth()]} ${adjustedDate.getDate()}`;
+            document.getElementById('day-label').textContent = dayLabelStr;
+            
+            const timeLabelStr = targetDateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const megaTimeEl = document.getElementById('mega-time');
+            if (megaTimeEl) {
+                megaTimeEl.style.display = 'inline';
+                megaTimeEl.textContent = timeLabelStr;
+            }
+
+            const unitStr = units.temp === 'C' ? '°C' : '°F';
+            const temp = convertTemp(data.hourly.temperature_2m[index]);
+            const feelsLike = convertTemp(data.hourly.apparent_temperature[index]);
+            const wmoCode = data.hourly.weather_code[index];
+            const isDayCode = data.hourly.is_day[index];
+            const windSpeed = formatSpeed(data.hourly.wind_speed_10m[index]);
+            const precipProb = data.hourly.precipitation_probability[index] || 0;
+            const precipMm = data.hourly.precipitation[index] || 0;
+            const humVal = data.hourly.relative_humidity_2m[index];
+            const windValRaw = data.hourly.wind_speed_10m[index];
+
+            document.getElementById('current-temp').textContent = temp;
+            document.getElementById('current-unit').textContent = unitStr;
+            document.getElementById('current-icon').innerHTML = getWeatherIcon(mapWmoCode(wmoCode), isDayCode);
+            document.getElementById('current-desc').innerHTML = `${mapWmoCode(wmoCode)}`;
+            document.getElementById('feels-like').innerHTML = `Feels ${feelsLike}° &nbsp;•&nbsp; Wind: ${windSpeed}`;
+
+            // Calculate precise celestial arc for the landscape
+            const targetHourNum = targetDateObj.getHours() + (targetDateObj.getMinutes() / 60);
+            
+            const riseStr = data.daily.sunrise[dayIndex];
+            const setStr = data.daily.sunset[dayIndex];
+            const riseHour = getLocalHour(riseStr);
+            const setHour = getLocalHour(setStr);
+            
+            const moonPhaseVal = getMoonPhase(targetDateObj);
+            let mRiseHour = (6 + (moonPhaseVal * 24)) % 24;
+            let mSetHour = (18 + (moonPhaseVal * 24)) % 24;
+
+            const activeCelestialPt = calculateCelestialArc(targetHourNum, riseHour, setHour, mRiseHour, mSetHour, isDayCode);
+            updateDynamicScene(wmoCode, isDayCode, windValRaw, precipProb, humVal, activeCelestialPt);
+            updateAstronomicalText(dayIndex, targetHourNum);
+        }
+
+        window.selectDay = function(dayIndex, doScroll = false) {
+            const data = currentWeatherData;
+            if (!data) return;
+            
+            currentSelectedHourIndex = null;
+            highlightHourlyItem(null);
+            
+            updateDashboardForDay(dayIndex);
+
+            if (doScroll) {
+                const hourlyContainer = document.getElementById('hourly-container');
+                const targetItem = hourlyContainer.querySelector(`[data-day="${dayIndex}"]`);
+                if (targetItem) {
+                    activeSyncContainer = 'hourly-container'; 
+                    hourlyContainer.scrollTo({ left: targetItem.offsetLeft - hourlyContainer.offsetLeft - 24, behavior: 'smooth' });
+                }
+            }
+        }
+
+        function updateDashboardForDay(dayIndex) {
+            const data = currentWeatherData;
+            if (!data) return;
+            currentSelectedDay = dayIndex; 
+            const unitStr = units.temp === 'C' ? '°C' : '°F';
+            const targetDateStr = data.daily.time[dayIndex];
+            
+            // --- Determine Base values for Day ---
+            let maxTemp, minTemp, dominantDayCode, feelsLike, isDayCode, targetHourNumForAstro;
+            
+            if (dayIndex === 0) {
+                dominantDayCode = data.current.weather_code;
+                isDayCode = data.current.is_day;
+                maxTemp = convertTemp(data.daily.temperature_2m_max[dayIndex]);
+                minTemp = convertTemp(data.daily.temperature_2m_min[dayIndex]);
+                feelsLike = convertTemp(data.current.apparent_temperature);
+                targetHourNumForAstro = getLocalHour(data.current.time);
+            } else {
+                dominantDayCode = getDaytimeWeatherCode(data, dayIndex);
+                isDayCode = 1; // Default to day for future summary
+                maxTemp = convertTemp(data.daily.temperature_2m_max[dayIndex]);
+                minTemp = convertTemp(data.daily.temperature_2m_min[dayIndex]);
+                feelsLike = convertTemp(data.daily.apparent_temperature_max[dayIndex]);
+                targetHourNumForAstro = null; // No specific hour selected
+            }
+            
+            // Average humidity for day
+            let startHr = data.hourly.time.findIndex(t => t.startsWith(targetDateStr));
+            if (startHr === -1) startHr = 0;
+            let sumHum = 0; let hrCount = 0;
+            for (let i = startHr; i < startHr + 24 && i < data.hourly.time.length; i++) {
+                sumHum += data.hourly.relative_humidity_2m[i]; hrCount++;
+            }
+            const humVal = hrCount > 0 ? Math.round(sumHum / hrCount) : 0;
+            
+            const windValRaw = data.daily.wind_speed_10m_max[dayIndex];
+            const precipVal = data.daily.precipitation_probability_max[dayIndex];
+
+            // Highlight Tab
+            document.querySelectorAll('.daily-tab').forEach((tab, idx) => {
+                const dayName = tab.querySelector('.day-name');
+                if (idx === dayIndex) {
+                    tab.classList.add('bg-[var(--c-accent)]/20', 'border-[var(--c-accent)]/50');
+                    if(dayName) dayName.classList.replace('text-[var(--c-text-muted)]', 'text-[var(--c-accent)]');
+                    
+                    const container = document.getElementById('daily-container');
+                    if (container && tab.parentElement === container) {
+                        const tabLeft = tab.offsetLeft - container.offsetLeft;
+                        if (tabLeft < container.scrollLeft || tabLeft + tab.offsetWidth > container.scrollLeft + container.offsetWidth) {
+                            container.scrollTo({ left: tabLeft - container.offsetWidth/2 + tab.offsetWidth/2, behavior: 'smooth' });
+                        }
+                    }
+                } else {
+                    tab.classList.remove('bg-[var(--c-accent)]/20', 'border-[var(--c-accent)]/50');
+                    if(dayName) dayName.classList.replace('text-[var(--c-accent)]', 'text-[var(--c-text-muted)]');
+                }
+            });
+
+            // --- 1. UPDATE OVERALL (MEGA CARD TOP) ---
+            if (dayIndex === 0) {
+                const now = new Date();
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                document.getElementById('day-label').textContent = `Today, ${months[now.getMonth()]} ${now.getDate()}`;
+                const megaTimeEl = document.getElementById('mega-time');
+                if (megaTimeEl) megaTimeEl.style.display = 'inline';
+                
+                document.getElementById('current-temp').textContent = convertTemp(data.current.temperature_2m);
+                document.getElementById('current-unit').textContent = unitStr;
+                document.getElementById('current-icon').innerHTML = getWeatherIcon(mapWmoCode(data.current.weather_code), data.current.is_day);
+                
+                document.getElementById('current-desc').innerHTML = `${mapWmoCode(data.current.weather_code)}`;
+                document.getElementById('feels-like').innerHTML = `Feels ${feelsLike}° &nbsp;•&nbsp; H: ${maxTemp}° L: ${minTemp}°`;
+            } else {
+                const dateObj = new Date(targetDateStr);
+                const adjustedDate = new Date(dateObj.getTime() + Math.abs(dateObj.getTimezoneOffset() * 60000));
+                document.getElementById('day-label').textContent = adjustedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                
+                const megaTimeEl = document.getElementById('mega-time');
+                if (megaTimeEl) megaTimeEl.style.display = 'none';
+                
+                document.getElementById('current-temp').textContent = convertTemp(data.daily.temperature_2m_max[dayIndex]);
+                document.getElementById('current-unit').textContent = unitStr;
+                
+                document.getElementById('current-icon').innerHTML = getWeatherIcon(mapWmoCode(dominantDayCode), 1); 
+                document.getElementById('current-desc').innerHTML = `${mapWmoCode(dominantDayCode)}`;
+                document.getElementById('feels-like').innerHTML = `Feels ${feelsLike}° &nbsp;•&nbsp; H: ${maxTemp}° L: ${minTemp}°`;
+            }
+
+            // Update Astronomical Sub-Cards (Circular Dials)
+            updateAstronomicalText(dayIndex, targetHourNumForAstro);
+
+            // --- Update Dynamic Scene (Landscape) for this day ---
+            let activeCelestialPt;
+            const riseStr = data.daily.sunrise[dayIndex];
+            const setStr = data.daily.sunset[dayIndex];
+            const riseHour = getLocalHour(riseStr);
+            const setHour = getLocalHour(setStr);
+            
+            if (dayIndex === 0) {
+                // Determine if sun is up right now
+                let isActuallyDay = false;
+                if (riseHour < setHour) {
+                    isActuallyDay = targetHourNumForAstro >= riseHour && targetHourNumForAstro < setHour;
+                } else {
+                    isActuallyDay = targetHourNumForAstro >= riseHour || targetHourNumForAstro < setHour;
+                }
+                
+                const targetDateObj = new Date(targetDateStr);
+                const moonPhaseVal = getMoonPhase(targetDateObj);
+                let mRiseHour = (6 + (moonPhaseVal * 24)) % 24;
+                let mSetHour = (18 + (moonPhaseVal * 24)) % 24;
+                
+                activeCelestialPt = calculateCelestialArc(targetHourNumForAstro, riseHour, setHour, mRiseHour, mSetHour, isActuallyDay ? 1 : 0);
+                updateDynamicScene(dominantDayCode, isActuallyDay ? 1 : 0, windValRaw, precipVal, humVal, activeCelestialPt);
+            } else {
+                // For future days, simulate high noon
+                updateDynamicScene(dominantDayCode, 1, windValRaw, precipVal, humVal, {x: 50, y: 10, isSun: true});
+            }
+        }
+
+        // ==========================================================
+        // ICON & CODE HELPERS 
+        // ==========================================================
+
+        function mapWmoCode(code) {
+            const codes = {
+                0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Cloudy',
+                45: 'Fog', 48: 'Freezing fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle', 
+                56: 'Freezing drizzle', 57: 'Heavy freezing drizzle',
+                61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+                66: 'Light freezing rain', 67: 'Heavy freezing rain',
+                71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+                80: 'Light rain showers', 81: 'Rain showers', 82: 'Heavy rain showers',
+                85: 'Snow showers', 86: 'Heavy snow showers',
+                95: 'Thunderstorm', 96: 'Storm with hail', 99: 'Severe thunderstorm'
+            };
+            return codes[code] || 'Unknown';
+        }
+
+        function getWeatherIcon(desc, isDay = 1) {
+            const lowerDesc = desc.toLowerCase();
+            
+            if (!isDay && (lowerDesc === 'clear' || lowerDesc === 'mostly clear')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+            }
+
+            if (lowerDesc.includes('rain') || lowerDesc.includes('drizzle') || lowerDesc.includes('shower')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path><path d="M16 20l-2-2"></path><path d="M12 22l-2-2"></path><path d="M8 20l-2-2"></path></svg>`;
+            } else if (lowerDesc.includes('cloud')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>`;
+            } else if (lowerDesc.includes('snow') || lowerDesc.includes('ice') || lowerDesc.includes('freezing')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e8eaed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path><path d="M8 15h.01"></path><path d="M8 19h.01"></path><path d="M12 17h.01"></path><path d="M12 21h.01"></path><path d="M16 15h.01"></path><path d="M16 19h.01"></path></svg>`;
+            } else if (lowerDesc.includes('storm') || lowerDesc.includes('thunder') || lowerDesc.includes('hail')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fce8b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path><path d="m13 11-4 6h6l-4 6"></path></svg>`;
+            } else if (lowerDesc.includes('fog')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h16"></path><path d="M4 18h16"></path><path d="M4 10h16"></path></svg>`;
+            } else {
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fbbc04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+            }
+        }
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
